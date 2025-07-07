@@ -1,0 +1,28 @@
+[32m2025-07-06 18:39:04 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353235 - LOGS_CAPTURED - Started capturing logs in process (pid: 353235).
+[32m2025-07-06 18:39:04 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353235 - merge_staging_to_delta_table.flatten_json - STEP_START - Started execution of step "merge_staging_to_delta_table.flatten_json".
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.flatten_json - Loading file from: /home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/tmpx_cby9s7/storage/b87d7330-015c-4942-bbbb-23cbaa44cd1f/merge_staging_to_delta_table.cache_properies_from_rest_api/local_file_handle using PickledObjectFilesystemIOManager...
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353235 - merge_staging_to_delta_table.flatten_json - LOADED_INPUT - Loaded input "local_file" using input manager "fs_io_manager", from output "local_file_handle" of step "merge_staging_to_delta_table.cache_properies_from_rest_api"
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353235 - merge_staging_to_delta_table.flatten_json - STEP_INPUT - Got input "local_file" of type "LocalFileHandle". (Type check passed).
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mINFO[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.flatten_json - Reading from local file: /tmp/dagster/file_cache/768714f0-231f-49f9-91bf-65d5b6a401a2.gz ...
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mINFO[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.flatten_json - faltten df length length: 25 and schema: Index(['id', 'paused', 'remoteViewing', 'listingCard_size',
+       'listing_localization_de_urls', 'listing_localization_de_text_title',
+       'listing_localization_de_text_description',
+       'listing_localization_de_text_situation',
+       'listing_localization_de_attachments',
+       'listing_localization_en_isMachineTranslated',
+       ...
+       'listing_characteristics_isGroundFloor',
+       'listing_newConstructionData_projectType',
+       'listing_characteristics_isCornerHouse',
+       'listing_characteristics_hasConnectedBuildingLand',
+       'listing_characteristics_hasDishwasher',
+       'newConstructionData_projectUrl',
+       'listing_newConstructionData_projectUrl',
+       'listing_characteristics_isOldBuilding',
+       'listing_characteristics_hasStoreRoom',
+       'listing_valueAddedServices_isLifetimeToplisting'],
+      dtype='object', length=172)
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353235 - merge_staging_to_delta_table.flatten_json - STEP_OUTPUT - Yielded output "result" of type "DataFrame". (Type check passed).
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.flatten_json - Writing file at: /home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/tmpx_cby9s7/storage/b87d7330-015c-4942-bbbb-23cbaa44cd1f/merge_staging_to_delta_table.flatten_json/result using PickledObjectFilesystemIOManager...
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353235 - merge_staging_to_delta_table.flatten_json - HANDLED_OUTPUT - Handled output "result" using IO manager "fs_io_manager"
+[32m2025-07-06 18:39:05 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353235 - merge_staging_to_delta_table.flatten_json - STEP_SUCCESS - Finished execution of step "merge_staging_to_delta_table.flatten_json" in 300ms.

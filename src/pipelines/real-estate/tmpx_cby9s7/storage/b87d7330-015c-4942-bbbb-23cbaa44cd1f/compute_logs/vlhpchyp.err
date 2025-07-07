@@ -1,0 +1,221 @@
+[32m2025-07-06 18:39:07 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353377 - LOGS_CAPTURED - Started capturing logs in process (pid: 353377).
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353377 - merge_staging_to_delta_table.merge_property_delta - STEP_START - Started execution of step "merge_staging_to_delta_table.merge_property_delta".
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - Loading file from: /home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/tmpx_cby9s7/storage/b87d7330-015c-4942-bbbb-23cbaa44cd1f/merge_staging_to_delta_table.flatten_json/result using PickledObjectFilesystemIOManager...
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353377 - merge_staging_to_delta_table.merge_property_delta - LOADED_INPUT - Loaded input "input_dataframe" using input manager "fs_io_manager", from output "result" of step "merge_staging_to_delta_table.flatten_json"
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353377 - merge_staging_to_delta_table.merge_property_delta - STEP_INPUT - Got input "input_dataframe" of type "DataFrame". (Type check passed).
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - Removing columns: ['propertyDetails_images', 'propertyDetails_pdfs', 'propertyDetails_commuteTimes_defaultPois_transportations', 'viewData_viewDataWeb_webView_structuredData']
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mINFO[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - df type: <class 'pandas.core.frame.DataFrame'>
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mINFO[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - df columns: Index(['propertyDetails_propertyId', 'propertyDetails_normalizedPrice'], dtype='object')
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - Target Delta table schema: propertyDetails_propertyId: string
+propertyDetails_normalizedPrice: int64
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - input_dataframe: <class 'pandas.core.frame.DataFrame'> and lenght 25
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - input_dataframe schema: id: string
+paused: bool
+remoteViewing: bool
+listingCard_size: string
+listing_localization_de_urls: list<item: struct<title: string, type: string, value: string>>
+  child 0, item: struct<title: string, type: string, value: string>
+      child 0, title: string
+      child 1, type: string
+      child 2, value: string
+listing_localization_de_text_title: string
+listing_localization_de_text_description: string
+listing_localization_de_text_situation: string
+listing_localization_de_attachments: list<item: struct<alt: string, caption: string, file: string, title: string, type: string, url: string>>
+  child 0, item: struct<alt: string, caption: string, file: string, title: string, type: string, url: string>
+      child 0, alt: string
+      child 1, caption: string
+      child 2, file: string
+      child 3, title: string
+      child 4, type: string
+      child 5, url: string
+listing_localization_en_isMachineTranslated: bool
+listing_localization_en_text_title: string
+listing_localization_en_text_description: string
+listing_localization_en_text_situation: string
+listing_localization_en_attachments: list<item: null>
+  child 0, item: null
+listing_localization_de_de_isMachineTranslated: bool
+listing_localization_de_de_text_title: string
+listing_localization_de_de_text_description: string
+listing_localization_de_de_text_situation: string
+listing_localization_primary: string
+listing_lister_legalName: string
+listing_lister_website_value: string
+listing_lister_address_locality: string
+listing_lister_address_country: string
+listing_lister_address_geoCoordinates_latitude: double
+listing_lister_address_geoCoordinates_longitude: double
+listing_lister_address_region: string
+listing_lister_address_street: string
+listing_lister_address_postalCode: string
+listing_lister_mobile: string
+listing_lister_id: string
+listing_lister_logoUrl: string
+listing_lister_contacts_inquiry_mobile: string
+listing_lister_contacts_inquiry_gender: string
+listing_lister_contacts_inquiry_function: string
+listing_lister_contacts_inquiry_givenName: string
+listing_lister_contacts_inquiry_familyName: string
+listing_characteristics_hasWashingMachine: bool
+listing_characteristics_hasTumbleDryer: bool
+listing_characteristics_totalFloorSpace: double
+listing_characteristics_hasBalcony: bool
+listing_characteristics_hasFireplace: bool
+listing_characteristics_livingSpace: double
+listing_characteristics_numberOfRooms: double
+listing_characteristics_yearBuilt: double
+listing_characteristics_hasMountainView: bool
+listing_characteristics_hasCableTv: bool
+listing_characteristics_hasLakeView: bool
+listing_characteristics_isMinergieGeneral: bool
+listing_characteristics_isWheelchairAccessible: bool
+listing_characteristics_isWellTended: bool
+listing_characteristics_ceilingHeight: double
+listing_characteristics_isSunny: bool
+listing_characteristics_hasElevator: bool
+listing_characteristics_arePetsAllowed: bool
+listing_characteristics_floor: double
+listing_characteristics_isQuiet: bool
+listing_characteristics_hasGarage: bool
+listing_characteristics_isMinergieCertified: bool
+listing_characteristics_isChildFriendly: bool
+listing_characteristics_numberOfBathrooms: double
+listing_address_country: string
+listing_address_geoTags: list<item: string>
+  child 0, item: string
+listing_address_street: string
+listing_address_postalCode: string
+listing_address_locality: string
+listing_address_geoCoordinates_accuracy: string
+listing_address_geoCoordinates_latitude: double
+listing_address_geoCoordinates_longitude: double
+listing_address_region: string
+listing_legacy_deliveryGroupId: int64
+listing_legacy_personId: int64
+listing_legacy_publishingGroupId: int64
+listing_externalIds_internalReferenceId: string
+listing_externalIds_refHouse: string
+listing_externalIds_swissretsReferenceId: string
+listing_externalIds_refObject: string
+listing_externalIds_displayPropertyReferenceId: string
+listing_externalIds_propertyReferenceId: string
+listing_contactForm_size: string
+listing_contactForm_deliveryFormat: string
+listing_availableFrom: string
+listing_bfs_egrid: string
+listing_bfs_egid: string
+listing_bfs_ewidCandidates: list<item: struct<ewid: string, floor: int64, livingSpace: int64, rooms: int64>>
+  child 0, item: struct<ewid: string, floor: int64, livingSpace: int64, rooms: int64>
+      child 0, ewid: string
+      child 1, floor: int64
+      child 2, livingSpace: int64
+      child 3, rooms: int64
+listing_platforms: list<item: string>
+  child 0, item: string
+listing_offerType: string
+listing_meta_createdAt: string
+listing_meta_updatedAt: string
+listing_meta_source: string
+listing_publishers: list<item: struct<id: string, options: list<item: struct<key: string, value: string>>>>
+  child 0, item: struct<id: string, options: list<item: struct<key: string, value: string>>>
+      child 0, id: string
+      child 1, options: list<item: struct<key: string, value: string>>
+          child 0, item: struct<key: string, value: string>
+              child 0, key: string
+              child 1, value: string
+listing_id: string
+listing_categories: list<item: string>
+  child 0, item: string
+listing_prices_currency: string
+listing_prices_buy_area: string
+listing_prices_buy_price: int64
+listerBranding_logoUrl: string
+listerBranding_legalName: string
+listerBranding_address_locality: string
+listerBranding_address_country: string
+listerBranding_address_geoCoordinates_latitude: double
+listerBranding_address_geoCoordinates_longitude: double
+listerBranding_address_region: string
+listerBranding_address_street: string
+listerBranding_address_postalCode: string
+listerBranding_adActive: bool
+listerBranding_isPremiumBranding: bool
+listerBranding_profilePageUrlKeyword: string
+listerBranding_isQualityPartner: bool
+listerBranding_subscriptionType: string
+listingType_type: string
+propertyDetails_propertyType: string
+propertyDetails_isBuyRent: string
+propertyDetails_propertyId: string
+propertyDetails_searchCity: string
+propertyDetails_searchRadius: int64
+propertyDetails_searchDate: string
+propertyDetails_searchDateTime: string
+listing_localization_it_isMachineTranslated: bool
+listing_localization_it_text_title: string
+listing_localization_it_text_description: string
+listing_localization_it_attachments: list<item: null>
+  child 0, item: null
+listing_localization_fr_isMachineTranslated: bool
+listing_localization_fr_text_title: string
+listing_localization_fr_text_description: string
+listing_localization_fr_attachments: list<item: null>
+  child 0, item: null
+listing_lister_phone: string
+listing_lister_contacts_inquiry_phone: string
+listing_characteristics_numberOfToiletsGuest: double
+listing_externalIds_refProperty: string
+agencyAgent_firstName: string
+agencyAgent_lastName: string
+agencyAgent_phoneNumber: string
+agencyAgent_avatarUrl: string
+agencyAgent_mobileNumber: string
+agencyAgent_jobTitle: string
+agencyAgent_headAgencyId: string
+agencyAgent_isPublic: bool
+agencyAgent_email: string
+agencyAgent_logoBackgroundColor: double
+listing_lister_contacts_viewing_phone: string
+listing_characteristics_distanceHighSchool: double
+listing_characteristics_distanceKindergarten: double
+listing_characteristics_distancePrimarySchool: double
+listing_characteristics_distanceMotorway: double
+listing_characteristics_distanceShop: double
+listing_address_geoDistances: list<item: struct<distance: double, geoTag: string>>
+  child 0, item: struct<distance: double, geoTag: string>
+      child 0, distance: double
+      child 1, geoTag: string
+listing_externalIds_displayReferenceId: string
+listing_lister_contacts_viewing_givenName: string
+listing_characteristics_numberOfFloors: double
+listing_characteristics_numberOfApartments: double
+listing_lister_contacts_viewing_gender: string
+listing_characteristics_cubage: double
+listing_characteristics_lotSize: double
+listing_characteristics_yearLastRenovated: double
+listing_characteristics_hasParking: bool
+listing_characteristics_hasNiceView: bool
+listing_characteristics_hasSwimmingPool: bool
+listing_characteristics_isNewBuilding: bool
+listing_legacy_ppaPersonId: double
+listing_valueAddedServices_bundle: string
+newConstructionData_projectType: string
+listing_lister_contacts_viewing_familyName: string
+listing_characteristics_isGroundFloor: bool
+listing_newConstructionData_projectType: string
+listing_characteristics_isCornerHouse: bool
+listing_characteristics_hasConnectedBuildingLand: bool
+listing_characteristics_hasDishwasher: bool
+newConstructionData_projectUrl: string
+listing_newConstructionData_projectUrl: string
+listing_characteristics_isOldBuilding: bool
+listing_characteristics_hasStoreRoom: bool
+listing_valueAddedServices_isLifetimeToplisting: bool
+-- schema metadata --
+pandas: '{"index_columns": [{"kind": "range", "name": null, "start": 0, "' + 28386
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mINFO[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - Merged data into Delta table `property` successfully
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353377 - merge_staging_to_delta_table.merge_property_delta - STEP_OUTPUT - Yielded output "result" of type "DeltaCoordinate". (Type check passed).
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - merge_staging_to_delta_table.merge_property_delta - Writing file at: /home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/tmpx_cby9s7/storage/b87d7330-015c-4942-bbbb-23cbaa44cd1f/merge_staging_to_delta_table.merge_property_delta/result using PickledObjectFilesystemIOManager...
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353377 - merge_staging_to_delta_table.merge_property_delta - HANDLED_OUTPUT - Handled output "result" using IO manager "fs_io_manager"
+[32m2025-07-06 18:39:08 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353377 - merge_staging_to_delta_table.merge_property_delta - STEP_SUCCESS - Finished execution of step "merge_staging_to_delta_table.merge_property_delta" in 724ms.

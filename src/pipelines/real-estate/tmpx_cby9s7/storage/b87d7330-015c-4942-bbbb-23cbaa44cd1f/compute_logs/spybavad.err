@@ -1,0 +1,73 @@
+[32m2025-07-06 18:39:11 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353551 - LOGS_CAPTURED - Started capturing logs in process (pid: 353551).
+[32m2025-07-06 18:39:11 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353551 - data_exploration - STEP_START - Started execution of step "data_exploration".
+[32m2025-07-06 18:39:11 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - data_exploration - Loading file from: /home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/tmpx_cby9s7/storage/b87d7330-015c-4942-bbbb-23cbaa44cd1f/merge_staging_to_delta_table.merge_property_delta/result using PickledObjectFilesystemIOManager...
+[32m2025-07-06 18:39:11 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353551 - data_exploration - LOADED_INPUT - Loaded input "delta_path" using input manager "fs_io_manager", from output "result" of step "merge_staging_to_delta_table.merge_property_delta"
+[32m2025-07-06 18:39:11 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353551 - data_exploration - STEP_INPUT - Got input "delta_path" of type "DeltaCoordinate". (Type check passed).
+[32m2025-07-06 18:39:11 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353551 - data_exploration - STEP_INPUT - Got input "endpoint" of type "String". (Type check passed).
+[32m2025-07-06 18:39:11 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353551 - data_exploration - STEP_INPUT - Got input "key" of type "String". (Type check passed).
+[32m2025-07-06 18:39:11 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353551 - data_exploration - STEP_INPUT - Got input "secret" of type "String". (Type check passed).
+Executing:   0%|          | 0/33 [00:00<?, ?cell/s]2025-07-06 18:39:14 -0600 - dagster - DEBUG - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353694 - RESOURCE_INIT_STARTED - Starting initialization of resources [file_manager, fs_io_manager, io_manager, s3].
+
+2025-07-06 18:39:14 -0600 - dagster - DEBUG - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353694 - RESOURCE_INIT_SUCCESS - Finished initialization of resources [file_manager, fs_io_manager, io_manager, s3].
+
+2025-07-06 18:39:14 -0600 - dagster - DEBUG - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - data_exploration - Loading file from: /home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/tmpx_cby9s7/storage/b87d7330-015c-4942-bbbb-23cbaa44cd1f/merge_staging_to_delta_table.merge_property_delta/result using PickledObjectFilesystemIOManager...
+
+Executing:   3%|▎         | 1/33 [00:02<01:29,  2.80s/cell]Executing:   6%|▌         | 2/33 [00:03<00:41,  1.34s/cell]Executing:   9%|▉         | 3/33 [00:03<00:37,  1.25s/cell]
+[32m2025-07-06 18:39:15 -0600[0m - dagster - [34mWARNING[0m - scrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - data_exploration - Error when attempting to materialize executed notebook: papermill.exceptions.PapermillExecutionError: 
+---------------------------------------------------------------------------
+Exception encountered at "In [2]":
+---------------------------------------------------------------------------
+ModuleNotFoundError                       Traceback (most recent call last)
+Cell In[2], line 6
+      3 import socket
+      5 import sys,uuid,datetime
+----> 6 from pyspark.sql import SparkSession
+      7 from pyspark import SparkConf, SparkContext
+      9 #sc.stop()
+
+ModuleNotFoundError: No module named 'pyspark'
+
+
+Stack Trace:
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagstermill/factory.py", line 193, in execute_notebook
+    papermill.execute_notebook(
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/papermill/execute.py", line 131, in execute_notebook
+    raise_for_execution_errors(nb, output_path)
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/papermill/execute.py", line 251, in raise_for_execution_errors
+    raise error
+
+[32m2025-07-06 18:39:15 -0600[0m - dagster - [34mERROR[0m - [31mscrape_realestate - b87d7330-015c-4942-bbbb-23cbaa44cd1f - 353551 - data_exploration - STEP_FAILURE - Execution of step "data_exploration" failed.
+
+dagster._core.errors.DagsterExecutionStepExecutionError: Error occurred while executing op "data_exploration"::
+
+papermill.exceptions.PapermillExecutionError: 
+---------------------------------------------------------------------------
+Exception encountered at "In [2]":
+---------------------------------------------------------------------------
+ModuleNotFoundError                       Traceback (most recent call last)
+Cell In[2], line 6
+      3 import socket
+      5 import sys,uuid,datetime
+----> 6 from pyspark.sql import SparkSession
+      7 from pyspark import SparkConf, SparkContext
+      9 #sc.stop()
+
+ModuleNotFoundError: No module named 'pyspark'
+
+
+Stack Trace:
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagster/_core/execution/plan/utils.py", line 54, in op_execution_error_boundary
+    yield
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagster/_utils/__init__.py", line 467, in iterate_with_context
+    next_output = next(iterator)
+                  ^^^^^^^^^^^^^^
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagstermill/factory.py", line 287, in _t_fn
+    executed_notebook_path = execute_notebook(
+                             ^^^^^^^^^^^^^^^^^
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagstermill/factory.py", line 193, in execute_notebook
+    papermill.execute_notebook(
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/papermill/execute.py", line 131, in execute_notebook
+    raise_for_execution_errors(nb, output_path)
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/papermill/execute.py", line 251, in raise_for_execution_errors
+    raise error
+[0m
