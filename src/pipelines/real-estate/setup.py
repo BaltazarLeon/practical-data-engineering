@@ -4,7 +4,7 @@ setup(
     name="realestate",
     packages=find_packages(exclude=["realestate_tests"]),
     install_requires=[
-        "dagster==1.6.8",
+        "dagster==1.6.6",
         "dagster-pandas",
         "dagstermill",
         "notebook",
