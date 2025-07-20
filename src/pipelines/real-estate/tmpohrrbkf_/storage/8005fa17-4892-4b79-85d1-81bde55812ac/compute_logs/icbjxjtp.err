@@ -1,0 +1,31 @@
+[32m2025-07-20 13:11:14 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 8005fa17-4892-4b79-85d1-81bde55812ac - 13858 - LOGS_CAPTURED - Started capturing logs in process (pid: 13858).
+[32m2025-07-20 13:11:14 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 8005fa17-4892-4b79-85d1-81bde55812ac - 13858 - list_changed_properties.property_table - STEP_START - Started execution of step "list_changed_properties.property_table".
+[32m2025-07-20 13:11:14 -0600[0m - dagster - [34mERROR[0m - [31mscrape_realestate - 8005fa17-4892-4b79-85d1-81bde55812ac - 13858 - list_changed_properties.property_table - STEP_FAILURE - Execution of step "list_changed_properties.property_table" failed.
+
+dagster._core.errors.DagsterExecutionStepExecutionError: Error occurred while executing op "list_changed_properties.property_table"::
+
+OSError: Generic S3 error: Error performing list request: Client error with status 404 Not Found: <?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>NoSuchBucket</Code><Message>The specified bucket does not exist</Message><BucketName>real-estate</BucketName><Resource>/real-estate</Resource><RequestId>18540B62ECDCE939</RequestId><HostId>dd9025bab4ad464b049177c95eb6ebf374d3b3fd1af9251148b658df7ac2e3e8</HostId></Error>
+
+Stack Trace:
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagster/_core/execution/plan/utils.py", line 54, in op_execution_error_boundary
+    yield
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagster/_utils/__init__.py", line 467, in iterate_with_context
+    next_output = next(iterator)
+                  ^^^^^^^^^^^^^^
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagster/_core/execution/plan/compute_generator.py", line 131, in _coerce_op_compute_fn_to_iterator
+    result = invoke_compute_fn(
+             ^^^^^^^^^^^^^^^^^^
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/dagster/_core/execution/plan/compute_generator.py", line 125, in invoke_compute_fn
+    return fn(context, **args_to_pass) if context_arg_provided else fn(**args_to_pass)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/realestate/pipelines.py", line 50, in property_table
+    df, dt = reading_delta_table(context, s3_path_property)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/realestate/common/helper_functions.py", line 77, in reading_delta_table
+    dt = DeltaTable(s3_path_property, storage_options=storage_options)
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/baltazarleon/anaconda3/envs/real-estate-env/lib/python3.11/site-packages/deltalake/table.py", line 405, in __init__
+    self._table = RawDeltaTable(
+                  ^^^^^^^^^^^^^^
+[0m

@@ -1,0 +1,25 @@
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - 22714 - LOGS_CAPTURED - Started capturing logs in process (pid: 22714).
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - 22714 - merge_staging_to_delta_table.flatten_json - STEP_START - Started execution of step "merge_staging_to_delta_table.flatten_json".
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - merge_staging_to_delta_table.flatten_json - Loading file from: /home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/tmpohrrbkf_/storage/630190b1-ab62-4e16-b49e-a8ab4a4045a3/merge_staging_to_delta_table.cache_properies_from_rest_api/local_file_handle using PickledObjectFilesystemIOManager...
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - 22714 - merge_staging_to_delta_table.flatten_json - LOADED_INPUT - Loaded input "local_file" using input manager "fs_io_manager", from output "local_file_handle" of step "merge_staging_to_delta_table.cache_properies_from_rest_api"
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - 22714 - merge_staging_to_delta_table.flatten_json - STEP_INPUT - Got input "local_file" of type "LocalFileHandle". (Type check passed).
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mINFO[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - merge_staging_to_delta_table.flatten_json - Reading from local file: /tmp/dagster/file_cache/d6853001-8e3a-42e4-9963-588732749a43.gz ...
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mINFO[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - merge_staging_to_delta_table.flatten_json - faltten df length length: 25 and schema: Index(['id', 'paused', 'remoteViewing', 'listingCard_size',
+       'listing_localization_de_urls', 'listing_localization_de_text_title',
+       'listing_localization_de_text_description',
+       'listing_localization_de_attachments',
+       'listing_localization_de_de_isMachineTranslated',
+       'listing_localization_de_de_text_title',
+       ...
+       'listing_newConstructionData_projectUrl',
+       'listing_characteristics_hasParking',
+       'listing_characteristics_hasSwimmingPool', 'listing_legacy_ppaPersonId',
+       'listing_valueAddedServices_bundle',
+       'listing_lister_contacts_viewing_familyName',
+       'listing_characteristics_isGroundFloor', 'listing_lister_name',
+       'listerBranding_name', 'listing_characteristics_isOldBuilding'],
+      dtype='object', length=168)
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - 22714 - merge_staging_to_delta_table.flatten_json - STEP_OUTPUT - Yielded output "result" of type "DataFrame". (Type check passed).
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - merge_staging_to_delta_table.flatten_json - Writing file at: /home/baltazarleon/Documents/GitHub/MasterProyect/practical-data-engineering/src/pipelines/real-estate/tmpohrrbkf_/storage/630190b1-ab62-4e16-b49e-a8ab4a4045a3/merge_staging_to_delta_table.flatten_json/result using PickledObjectFilesystemIOManager...
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - 22714 - merge_staging_to_delta_table.flatten_json - HANDLED_OUTPUT - Handled output "result" using IO manager "fs_io_manager"
+[32m2025-07-20 13:14:51 -0600[0m - dagster - [34mDEBUG[0m - scrape_realestate - 630190b1-ab62-4e16-b49e-a8ab4a4045a3 - 22714 - merge_staging_to_delta_table.flatten_json - STEP_SUCCESS - Finished execution of step "merge_staging_to_delta_table.flatten_json" in 279ms.
