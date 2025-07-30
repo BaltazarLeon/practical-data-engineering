@@ -1,4 +1,4 @@
-        #!/usr/bin/env python3
+
 """
 Independent debug script for ImmoScout24 scraper
 Based on the original scraping logic but simplified for debugging
