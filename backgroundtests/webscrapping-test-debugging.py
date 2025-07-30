@@ -367,7 +367,7 @@ def debug_immoscout_scraper():
     print(f"\n📍 Step 6: Testing price extraction")
     
     try:
-        span_elements = soup.findAll("span")
+        span_elements = soup.find_all("span")
         print(f"Found {len(span_elements)} span elements")
         
         prices_found = []
