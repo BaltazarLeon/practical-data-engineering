@@ -292,7 +292,7 @@ def debug_immoscout_scraper():
         soup = BeautifulSoup(html.text, "html.parser")
         
         # Get all links
-        links = soup.findAll("a", href=True)
+        links = soup.find_all("a", href=True)
         print(f"Total links found: {len(links)}")
         
         # Show first 10 href patterns for analysis
