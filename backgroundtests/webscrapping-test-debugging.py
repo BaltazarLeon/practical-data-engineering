@@ -204,9 +204,9 @@ def debug_immoscout_scraper():
     # Test configuration - matches your working URL
     search_criteria = {
         "rentOrBuy": "buy",
-        "city": "bern", 
-        "propertyType": "house",
-        "radius": 7
+        "city": "twann", 
+        "propertyType": "real-estate",
+        "radius": 0
     }
     
     # URLs from your original config
@@ -287,8 +287,8 @@ def debug_immoscout_scraper():
     print(f"\n📍 Step 4: Testing property link extraction")
     
     try:
-        # Use the working URL for this test
-        html = requests.get(working_url)
+        
+        html = requests.get(original_page_url)
         soup = BeautifulSoup(html.text, "html.parser")
         
         # Get all links
