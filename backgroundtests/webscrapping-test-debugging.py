@@ -376,8 +376,11 @@ def debug_immoscout_scraper():
     print(f"\n📍 Step 6: Testing price extraction")
     
     try:
+        html = requests.get(original_page_url)
+        soup = BeautifulSoup(html.text, "html.parser")
         span_elements = soup.find_all("span")
         print(f"Found {len(span_elements)} span elements")
+        print (span_elements)
         
         prices_found = []
         for span in span_elements[:50]:  # Test first 50 spans
