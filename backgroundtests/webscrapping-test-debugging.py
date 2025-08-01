@@ -377,8 +377,11 @@ def debug_immoscout_scraper():
     
     try:
         html = requests.get(original_page_url)
-        soup = BeautifulSoup(html.text, "html.parser")
-        span_elements = soup.find_all("span")
+        print(f"Final URL: {html.url}")  # Check if you were redirected
+        print(f"Status Code: {html.status_code}")
+        print(f"First 1000 chars of HTML: {html.text[:1000]}")
+        soup2 = BeautifulSoup(html.text, "html.parser")
+        span_elements = soup2.find_all("span")
         print(f"Found {len(span_elements)} span elements")
         print (span_elements)
         
