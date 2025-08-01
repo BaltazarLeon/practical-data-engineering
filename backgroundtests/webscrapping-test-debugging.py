@@ -340,37 +340,37 @@ def debug_immoscout_scraper():
         print(f"❌ Error extracting links: {e}")
     
    # Step 5: Test property ID extraction
-print(f"\n📍 Step 5: Testing property ID extraction")
+    print(f"\n📍 Step 5: Testing property ID extraction")
 
-if 'hrefs_filtered_original' in locals() and hrefs_filtered_original:
-    print("Using original filter results...")
-    test_hrefs = hrefs_filtered_original
-else:
-    print("Original filter failed, testing manual examples...")
-    # Test with some example property URLs if we can find them
-    test_hrefs = [href for href in hrefs if re.search(r'/\d+', href)][:5]
+    if 'hrefs_filtered_original' in locals() and hrefs_filtered_original:
+        print("Using original filter results...")
+        test_hrefs = hrefs_filtered_original
+    else:
+        print("Original filter failed, testing manual examples...")
+        # Test with some example property URLs if we can find them
+        test_hrefs = [href for href in hrefs if re.search(r'/\d+', href)][:5]
 
-if test_hrefs:
-    print(f"Testing ID extraction from {len(test_hrefs)} URLs:")
-    extracted_ids = []  # Track all extracted IDs
-    
-    for href in test_hrefs:
-        # Original logic: extract first number found (line 103)
-        numbers = re.findall(r"\d+", href)
-        if numbers:
-            property_id = numbers[0]
-            extracted_ids.append(property_id)
-            print(f"  {href} → ID: {property_id}")
-        else:
-            print(f"  {href} → No ID found")
-    
-    # Print summary
-    print(f"\n✅ Summary: Successfully extracted {len(extracted_ids)} IDs out of {len(test_hrefs)} URLs")
-    print(f"   Extraction success rate: {len(extracted_ids)/len(test_hrefs)*100:.1f}%")
-    if extracted_ids:
-        print(f"   Sample IDs: {', '.join(extracted_ids[:5])}")
-else:
-    print("❌ No URLs available for ID extraction test")
+    if test_hrefs:
+        print(f"Testing ID extraction from {len(test_hrefs)} URLs:")
+        extracted_ids = []  # Track all extracted IDs
+        
+        for href in test_hrefs:
+            # Original logic: extract first number found (line 103)
+            numbers = re.findall(r"\d+", href)
+            if numbers:
+                property_id = numbers[0]
+                extracted_ids.append(property_id)
+                print(f"  {href} → ID: {property_id}")
+            else:
+                print(f"  {href} → No ID found")
+        
+        # Print summary
+        print(f"\n✅ Summary: Successfully extracted {len(extracted_ids)} IDs out of {len(test_hrefs)} URLs")
+        print(f"   Extraction success rate: {len(extracted_ids)/len(test_hrefs)*100:.1f}%")
+        if extracted_ids:
+            print(f"   Sample IDs: {', '.join(extracted_ids[:5])}")
+    else:
+        print("❌ No URLs available for ID extraction test")
     
     # Step 6: Test price extraction (lines 105-116 logic)
     print(f"\n📍 Step 6: Testing price extraction")
