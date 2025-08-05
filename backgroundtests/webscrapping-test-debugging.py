@@ -378,15 +378,12 @@ def debug_immoscout_scraper():
     try:
         html = requests.get(original_page_url)
         print(f"Final URL: {html.url}")  # Check if you were redirected
-        print(f"Status Code: {html.status_code}")
-        print(f"First 1000 chars of HTML: {html.text[:1000]}")
         soup2 = BeautifulSoup(html.text, "html.parser")
         span_elements = soup2.find_all("span")
         print(f"Found {len(span_elements)} span elements")
-        print (span_elements)
         
         prices_found = []
-        for span in span_elements[:50]:  # Test first 50 spans
+        for span in span_elements: 
             text = span.getText().strip()
             if "CHF" in text or "EUR" in text:
                 print(f"Currency text found: '{text[:100]}...'")
