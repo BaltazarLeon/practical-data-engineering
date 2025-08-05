@@ -1,6 +1,6 @@
 """
-Independent debug script for ImmoScout24 scraper
-Based on the original scraping logic but simplified for debugging
+Independent debug script for Inmuebles24 scraper
+Based on the original scraping logic but adapted for inmuebles24.com
 """
 
 import requests
@@ -197,26 +197,24 @@ def improved_page_detection(buttons):
     """
     return find_last_page_strategic(buttons)
 
-def debug_immoscout_scraper():
-    """Debug the ImmoScout24 scraping logic step by step"""
+def debug_inmuebles24_scraper():
+    """Debug the Inmuebles24 scraping logic step by step"""
     
-    # Test configuration - matches your working URL
+    # Test configuration - adapted for inmuebles24
     search_criteria = {
-        "rentOrBuy": "buy",
-        "city": "twann", 
-        "propertyType": "real-estate",
-        "radius": 0
+        "rentOrBuy": "venta",
+        "city": "ciudad-de-mexico", 
+        "propertyType": "departamentos"
     }
     
-    # URLs from your original config
-    immo24_main_url_en = "https://www.immoscout24.ch/en/"
-    immo24_search_url_en = "https://www.immoscout24.ch/en/real-estate/"
+    # URLs for inmuebles24
+    inmuebles24_main_url = "https://www.inmuebles24.com/"
     
-    print("🔍 DEBUG: ImmoScout24 Scraper Analysis")
+    print("🔍 DEBUG: Inmuebles24 Scraper Analysis")
     print("=" * 50)
     
     # Step 1: Test the working URL you provided
-    working_url = "https://www.immoscout24.ch/en/house/buy/city-bern?pn=1&r=7&se=16&map=1"
+    working_url = "https://www.inmuebles24.com/departamentos-en-venta-en-ciudad-de-mexico-mas-de-5-pesos.html"
     print(f"\n📍 Step 1: Testing your working URL")
     print(f"URL: {working_url}")
     
@@ -233,48 +231,58 @@ def debug_immoscout_scraper():
         print(f"❌ Error fetching URL: {e}")
         return
     
-    # Step 2: Reconstruct URL using original logic
-    print(f"\n📍 Step 2: Testing original URL construction logic")
+    # Step 2: Analyze URL pattern for inmuebles24
+    print(f"\n📍 Step 2: Analyzing URL patterns for inmuebles24")
     
-    # This matches lines 57-65 from your original code
-    original_search_url = (
-        immo24_search_url_en
-        + search_criteria["rentOrBuy"]
-        + "/city-"
-        + search_criteria["city"]
-        + "?r="
-        + str(search_criteria["radius"])
-        + "&map=1"
-    )
-    print(f"Original search URL: {original_search_url}")
+    # Inmuebles24 URL pattern seems to be:
+    # /{property-type}-en-{rentOrBuy}-en-{city}-mas-de-5-pesos.html
     
-    # This matches lines 82-94 from your original code  
-    original_page_url = (
-        immo24_main_url_en
+    # Construct URL based on pattern
+    constructed_url = (
+        inmuebles24_main_url
         + search_criteria["propertyType"]
-        + "/"
+        + "-en-"
         + search_criteria["rentOrBuy"]
-        + "/city-"
+        + "-en-"
         + search_criteria["city"]
-        + "?pn=1"
-        + "&r=7"
-        + str(search_criteria["radius"])
-        + "&se=16"
-        + "&map=1"
+        + "-mas-de-5-pesos.html"
     )
-    print(f"Original page URL: {original_page_url}")
-    print(f"Working URL:       {working_url}")
-    print(f"URLs match: {original_page_url == working_url}")
+    print(f"Constructed URL: {constructed_url}")
+    print(f"Working URL:     {working_url}")
+    print(f"URLs match: {constructed_url == working_url}")
     
-    # Step 3: Find maximum pages (lines 68-78 logic)
+    # Step 3: Find maximum pages (adapted for inmuebles24)
     print(f"\n📍 Step 3: Finding maximum pages")
     
     try:
-        html = requests.get(original_search_url)
+        html = requests.get(working_url)
         soup = BeautifulSoup(html.text, "html.parser")
-        buttons = soup.find_all("a")
         
-        print(f"Found {len(buttons)} anchor tags")
+        # Try different pagination selectors common in real estate sites
+        # First try finding pagination container
+        pagination_selectors = [
+            {"class": "pagination"},
+            {"class": "paginator"},
+            {"class": "paging"},
+            {"class": "pages"},
+            {"class": "page-list"},
+            {"class": "nav-pages"}
+        ]
+        
+        pagination_found = False
+        for selector in pagination_selectors:
+            pagination_container = soup.find("div", selector)
+            if pagination_container:
+                print(f"✅ Found pagination container with class: {selector['class']}")
+                buttons = pagination_container.find_all("a")
+                print(f"Found {len(buttons)} pagination links")
+                pagination_found = True
+                break
+        
+        if not pagination_found:
+            # Fallback to all anchor tags
+            buttons = soup.find_all("a")
+            print(f"⚠️ No specific pagination container found, checking all {len(buttons)} anchor tags")
         
         lastPage = find_last_page_strategic(buttons)
             
@@ -282,80 +290,88 @@ def debug_immoscout_scraper():
         print(f"❌ Error finding pages: {e}")
         last_page = 1
     
-    # Step 4: Extract property links (lines 98-102 logic - THE CRITICAL PART)
+    # Step 4: Extract property links (adapted for inmuebles24)
     print(f"\n📍 Step 4: Testing property link extraction")
     
     try:
-        
-        html = requests.get(original_page_url)
+        html = requests.get(working_url)
         soup = BeautifulSoup(html.text, "html.parser")
         
         # Get all links
         links = soup.find_all("a", href=True)
         print(f"Total links found: {len(links)}")
         
-        # Show first 10 href patterns for analysis
+        # Show first 15 href patterns for analysis
         print("\n🔗 Sample href patterns:")
         hrefs = [item["href"] for item in links]
         for i, href in enumerate(hrefs[:15]):
             print(f"  {i+1:2d}. {href}")
         
-        # Test original filter logic (line 102)
-        original_filter = "/" + search_criteria['rentOrBuy'] + "/"  # "/buy/"
-        print(f"\n🎯 Original filter pattern: '{original_filter}'")
+        # Test different patterns common for property links in inmuebles24
+        patterns_to_test = [
+            f"/{search_criteria['propertyType']}/",
+            "/propiedades/",
+            "/inmueble/",
+            "/detalle/",
+            "/ficha/",
+            f"/{search_criteria['rentOrBuy']}/",
+            "-en-venta-",
+            "-departamento-",
+            "/departamento/",
+            "/casa/",
+            ".html"
+        ]
         
-        hrefs_filtered_original = [href for href in hrefs if href.startswith(original_filter)]
-        print(f"Links matching original filter: {len(hrefs_filtered_original)}")
+        print(f"\n🔍 Testing property link patterns:")
+        best_pattern = None
+        best_count = 0
         
-        if hrefs_filtered_original:
-            print("✅ Original filter found matches:")
-            for href in hrefs_filtered_original[:5]:
-                print(f"  - {href}")
-        else:
-            print("❌ Original filter found NO matches")
-            
-            # Try alternative patterns
-            print("\n🔍 Testing alternative patterns:")
-            
-            patterns_to_test = [
-                "/en/d/",
-                "/d/",
-                f"/{search_criteria['propertyType']}/",
-                f"/house/",
-                f"/property/",
-                f"/listing/",
-                f"/detail/",
-                "/en/house/",
-                "/en/property/"
-            ]
-            
-            for pattern in patterns_to_test:
-                matches = [href for href in hrefs if pattern in href]
-                print(f"  Pattern '{pattern}': {len(matches)} matches")
-                if matches:
-                    print(f"    Examples: {matches[:3]}")
+        for pattern in patterns_to_test:
+            matches = [href for href in hrefs if pattern in href]
+            print(f"  Pattern '{pattern}': {len(matches)} matches")
+            if len(matches) > best_count and len(matches) < len(hrefs) * 0.5:  # Avoid too generic patterns
+                best_count = len(matches)
+                best_pattern = pattern
+            if matches and len(matches) <= 5:
+                print(f"    Examples: {matches[:3]}")
+        
+        if best_pattern:
+            print(f"\n✅ Best pattern found: '{best_pattern}' with {best_count} matches")
+            property_links = [href for href in hrefs if best_pattern in href]
+            print(f"Sample property links:")
+            for link in property_links[:5]:
+                print(f"  - {link}")
     
     except Exception as e:
         print(f"❌ Error extracting links: {e}")
     
-   # Step 5: Test property ID extraction
+    # Step 5: Test property ID extraction
     print(f"\n📍 Step 5: Testing property ID extraction")
 
-    if 'hrefs_filtered_original' in locals() and hrefs_filtered_original:
-        print("Using original filter results...")
-        test_hrefs = hrefs_filtered_original
-    else:
-        print("Original filter failed, testing manual examples...")
-        # Test with some example property URLs if we can find them
-        test_hrefs = [href for href in hrefs if re.search(r'/\d+', href)][:5]
-
-    if test_hrefs:
-        print(f"Testing ID extraction from {len(test_hrefs)} URLs:")
-        extracted_ids = []  # Track all extracted IDs
+    if 'property_links' in locals() and property_links:
+        print(f"Testing ID extraction from {len(property_links)} property URLs:")
+        extracted_ids = []
         
-        for href in test_hrefs:
-            # Original logic: extract first number found (line 103)
-            numbers = re.findall(r"\d+", href)
+        for href in property_links[:10]:  # Test first 10
+            # Try multiple ID extraction patterns
+            # Pattern 1: numbers at the end before .html
+            match = re.search(r'-(\d+)\.html', href)
+            if match:
+                property_id = match.group(1)
+                extracted_ids.append(property_id)
+                print(f"  {href} → ID: {property_id}")
+                continue
+                
+            # Pattern 2: numbers after a slash
+            match = re.search(r'/(\d{5,})/?', href)
+            if match:
+                property_id = match.group(1)
+                extracted_ids.append(property_id)
+                print(f"  {href} → ID: {property_id}")
+                continue
+                
+            # Pattern 3: any long number in the URL
+            numbers = re.findall(r'\d{5,}', href)
             if numbers:
                 property_id = numbers[0]
                 extracted_ids.append(property_id)
@@ -363,56 +379,74 @@ def debug_immoscout_scraper():
             else:
                 print(f"  {href} → No ID found")
         
-        # Print summary
-        print(f"\n✅ Summary: Successfully extracted {len(extracted_ids)} IDs out of {len(test_hrefs)} URLs")
-        print(f"   Extraction success rate: {len(extracted_ids)/len(test_hrefs)*100:.1f}%")
+        print(f"\n✅ Summary: Successfully extracted {len(extracted_ids)} IDs")
         if extracted_ids:
             print(f"   Sample IDs: {', '.join(extracted_ids[:5])}")
     else:
-        print("❌ No URLs available for ID extraction test")
+        print("❌ No property links available for ID extraction test")
     
-    # Step 6: Test price extraction (lines 105-116 logic)
+    # Step 6: Test price extraction (adapted for MXN currency)
     print(f"\n📍 Step 6: Testing price extraction")
     
     try:
-        html = requests.get(original_page_url)
-        print(f"Status Code: {html.status_code}")
-        soup2 = BeautifulSoup(html.text, "html.parser")
-        span_elements = soup2.find_all("span")
-        print(f"Found {len(span_elements)} span elements")
-                
+        html = requests.get(working_url)
+        soup = BeautifulSoup(html.text, "html.parser")
+        
+        # Look for price elements - common patterns in real estate sites
+        price_selectors = [
+            {"class": re.compile("price", re.I)},
+            {"class": re.compile("precio", re.I)},
+            {"class": re.compile("cost", re.I)},
+            {"class": re.compile("value", re.I)},
+            {"class": re.compile("amount", re.I)}
+        ]
+        
         prices_found = []
-        for span in span_elements:  # Test first 50 spans
-            text = span.getText().strip()
-            if "CHF" in text or "EUR" in text:
-                print(f"Currency text found: '{text[:100]}...'")
+        
+        for selector in price_selectors:
+            elements = soup.find_all(["span", "div", "p"], selector)
+            if elements:
+                print(f"Found {len(elements)} elements with pattern: {selector}")
                 
-                # Original price extraction logic
-                if "CHF" in text:
-                    start = text.find("CHF") + 4
-                    end = text.find(".â\x80\x94")  # em dash
-                    if end == -1:
-                        end = len(text)
+                for elem in elements[:10]:  # Check first 10
+                    text = elem.getText().strip()
                     
-                    price_text = text[start:end]
-                    price_clean = re.sub(r"\D", "", price_text)
-                    if price_clean:
-                        prices_found.append(price_clean)
-                        print(f"  → Extracted price: {price_clean}")
+                    # Look for Mexican peso patterns
+                    if "$" in text or "MXN" in text or "USD" in text:
+                        print(f"  Currency text found: '{text[:100]}'")
+                        
+                        # Extract numeric values
+                        # Remove common separators and extract numbers
+                        price_text = re.sub(r'[^\d,.]', '', text)
+                        price_text = price_text.replace(',', '')
+                        
+                        if price_text and price_text.replace('.', '').isdigit():
+                            prices_found.append(price_text)
+                            print(f"    → Extracted price: {price_text}")
         
         print(f"\n✅ Total prices extracted: {len(prices_found)}")
         if prices_found:
             print(f"Sample prices: {prices_found[:5]}")
+        
+        # Also try searching for any text containing currency symbols
+        all_text_elements = soup.find_all(text=re.compile(r'\$[\d,]+'))
+        print(f"\n🔍 Alternative: Found {len(all_text_elements)} text nodes with $ symbol")
         
     except Exception as e:
         print(f"❌ Error extracting prices: {e}")
     
     print(f"\n" + "=" * 50)
     print("🏁 Debug Summary:")
-    print(f"✅ URL construction: Working")
+    print(f"✅ URL construction: Working (with pattern adjustment)")
     print(f"✅ Page fetching: Working") 
-    print(f"{'✅' if 'hrefs_filtered_original' in locals() and hrefs_filtered_original else '❌'} Property link extraction: {'Working' if 'hrefs_filtered_original' in locals() and hrefs_filtered_original else 'BROKEN'}")
-    print(f"{'✅' if 'prices_found' in locals() and prices_found else '❌'} Price extraction: {'Working' if 'prices_found' in locals() and prices_found else 'BROKEN'}")
+    print(f"{'✅' if 'property_links' in locals() and property_links else '❌'} Property link extraction: {'Working' if 'property_links' in locals() and property_links else 'Needs pattern adjustment'}")
+    print(f"{'✅' if 'prices_found' in locals() and prices_found else '❌'} Price extraction: {'Working' if 'prices_found' in locals() and prices_found else 'Needs selector adjustment'}")
+    
+    print(f"\n💡 Recommendations:")
+    print("1. Inspect the actual HTML structure to find the correct selectors")
+    print("2. Property links might use different patterns than tested")
+    print("3. Price elements might be loaded dynamically via JavaScript")
+    print("4. Consider using browser automation (Selenium/Playwright) if content is dynamic")
 
 if __name__ == "__main__":
-    debug_immoscout_scraper()
+    debug_inmuebles24_scraper()
