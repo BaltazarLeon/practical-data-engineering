@@ -231,7 +231,7 @@ async def main():
     # First, get with requests
     print("\n📦 Getting with Requests...")
     requests_data = await compare_with_requests(url)
-    print(f"✅ Requests: {len(requests_data['prices'])} prices found")
+    print(f"✅ Requests: {len(requests_data['prices'])} prices found")      
     print("Sample prices:", requests_data['prices'][:3])
     
     # Then, get with Playwright
@@ -254,7 +254,7 @@ async def main():
     print(f"  Requests:   {requests_data['title']}")
     print(f"  Playwright: {playwright_data['title']}")
     
-    print(f"\n💰 Prices Found:")
+    print(f"\n💰 Prices Found:")        
     print(f"\n  Requests ({len(requests_data['prices'])} total):")
     for i, price in enumerate(requests_data['prices'][:5], 1):
         print(f"    {i}. {price}")
