@@ -236,7 +236,7 @@ async def main():
     
     # Then, get with Playwright
     print("\n🎭 Getting with Playwright (real browser)...")
-    playwright_data = await capture_with_playwright(url, headless=True)
+    playwright_data = await capture_with_playwright(url, headless=False)
     
     # Save screenshot
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
