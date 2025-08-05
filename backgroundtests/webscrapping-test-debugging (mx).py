@@ -250,7 +250,7 @@ def debug_inmuebles24_scraper():
     print(f"Constructed URL: {constructed_url}")
     print(f"Working URL:     {working_url}")
     print(f"URLs match: {constructed_url == working_url}")
-    
+    """
     # Step 3: Find maximum pages (adapted for inmuebles24)
     print(f"\n📍 Step 3: Finding maximum pages")
     
@@ -289,14 +289,14 @@ def debug_inmuebles24_scraper():
     except Exception as e:
         print(f"❌ Error finding pages: {e}")
         last_page = 1
-    
+    """
     # Step 4: Extract property links (adapted for inmuebles24)
     print(f"\n📍 Step 4: Testing property link extraction")
     
     try:
         html = requests.get(working_url)
         soup = BeautifulSoup(html.text, "html.parser")
-        
+        """
         # Get all links
         links = soup.find_all("a", href=True)
         print(f"Total links found: {len(links)}")
@@ -341,10 +341,10 @@ def debug_inmuebles24_scraper():
             print(f"Sample property links:")
             for link in property_links[:5]:
                 print(f"  - {link}")
-    
+        """
     except Exception as e:
         print(f"❌ Error extracting links: {e}")
-    
+    """
     # Step 5: Test property ID extraction
     print(f"\n📍 Step 5: Testing property ID extraction")
 
@@ -447,6 +447,6 @@ def debug_inmuebles24_scraper():
     print("2. Property links might use different patterns than tested")
     print("3. Price elements might be loaded dynamically via JavaScript")
     print("4. Consider using browser automation (Selenium/Playwright) if content is dynamic")
-
+    """
 if __name__ == "__main__":
     debug_inmuebles24_scraper()
