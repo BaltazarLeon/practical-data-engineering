@@ -12,7 +12,7 @@ from playwright.async_api import async_playwright
 import requests
 from bs4 import BeautifulSoup
 
-async def capture_with_playwright(url, headless=False):
+async def capture_with_playwright(url, headless=True):
     """Capture the page using Playwright (real browser rendering)"""
     async with async_playwright() as p:
         # Launch browser
