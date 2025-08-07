@@ -180,3 +180,5 @@ src/pipelines/real-estate/realestate/notebooks/SFO_Delays_by_Destination.ipynb
 src/pipelines/real-estate/realestate/notebooks/Yusuke Nakaichi - House Prices.ipynb
 src/test.py
 backgroundtests/screenshots/
+backgroundtests/jsons-logs/
+backgroundtests/html/

@@ -534,6 +534,12 @@ async def debug_inmuebles24_scraper():
         for i, price in enumerate(playwright_data['prices']['span_prices'], 1):
             print(f"    {i}. {price['text']}")
 
+        # Let's try to save the page content
+        with open("backgroundtests/webscrapping-test-debugging_MX_PW.html", "w", encoding='utf-8') as f:
+            f.write(playwright_data['content'])
+        print("📄 Page content saved to 'webscrapping-test-debugging_MX_PW.html")
+        
+
 
         """
         # Get all links
