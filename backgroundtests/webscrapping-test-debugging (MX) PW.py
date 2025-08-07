@@ -66,6 +66,30 @@ async def capture_with_playwright(url, headless=False):
             'console_logs': []
         }
         
+
+        # Capture page content
+        property_cards = await page.evaluate('''() => {
+            const container = document.querySelector('div.postingsList-module__postings-container');
+            if (!container) return [];
+            return Array.from(container.children).map((card, idx) => {
+            // Find the first descendant with both data-id and data-to-posting attributes
+            const subchild = card.querySelector('[data-id][data-to-posting]');
+            let dataId = null, dataToPosting = null, url = null;
+            if (subchild) {
+                dataId = subchild.getAttribute('data-id');
+                dataToPosting = subchild.getAttribute('data-to-posting');
+                // Use the data-to-posting attribute as the link
+                url = dataToPosting || null;
+            }
+            return {
+                index: idx + 1,
+                data_id: dataId,
+                data_to_posting: dataToPosting,
+                url: url
+            };
+            });
+        }''')
+        results['property_cards'] = property_cards        
         # Capture screenshots
         results['screenshots']['full'] = await page.screenshot(full_page=True)
         
@@ -534,10 +558,10 @@ async def debug_inmuebles24_scraper():
         for i, price in enumerate(playwright_data['prices']['span_prices'], 1):
             print(f"    {i}. {price['text']}")
 
-        # Let's try to save the page content
-        with open("backgroundtests/webscrapping-test-debugging_MX_PW.html", "w", encoding='utf-8') as f:
-            f.write(playwright_data['content'])
-        print("📄 Page content saved to 'webscrapping-test-debugging_MX_PW.html")
+        # Show property cards found
+        print(f"\n  Playwright - Property Cards ({len(playwright_data['property_cards'])} total):")
+        for card in playwright_data['property_cards']:
+            print(f"    - {card['index']}: {card['url']} (data-id: {card['data_id']})")
         
 
 
