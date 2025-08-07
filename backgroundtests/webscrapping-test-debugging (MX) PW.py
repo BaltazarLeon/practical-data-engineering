@@ -12,6 +12,9 @@ import re
 from bs4 import BeautifulSoup
 from typing import Dict, List, Any
 
+
+
+# Function to Capture Data using Playwright I think I need to separate this more into models
 async def capture_with_playwright(url, headless=False):
     """Capture the page using Playwright (real browser rendering)"""
     async with async_playwright() as p:
@@ -217,193 +220,192 @@ async def capture_with_playwright(url, headless=False):
         return results
 
 
-def find_last_page_robust(buttons):
-    """
-    Robust pagination detection that handles various formats:
-    - Simple: 1 2 3 4 5
-    - With ellipsis: 1 2 3 ... 15
-    - With next: 1 2 3 Next
-    - With arrows: 1 2 3 →
-    """
-    
-    page_numbers = []
-    potential_last_pages = []
-    
-    print("🔍 Analyzing pagination buttons...")
-    
-    for i, item in enumerate(buttons):
-        text = item.text.strip()
+# Functions Utilized to find the last pages _(REWORK UTILIZING THE LOGIC OF DIVISION FROM THE PAGE)
+
+    def find_last_page_robust(buttons):
+        """
+        Robust pagination detection that handles various formats:
+        - Simple: 1 2 3 4 5
+        - With ellipsis: 1 2 3 ... 15
+        - With next: 1 2 3 Next
+        - With arrows: 1 2 3 →
+        """
         
-        # Skip empty text
-        if not text:
-            continue
+        page_numbers = []
+        potential_last_pages = []
+        
+        print("🔍 Analyzing pagination buttons...")
+        
+        for i, item in enumerate(buttons):
+            text = item.text.strip()
             
-        print(f"  Button {i+1}: '{text}' (length: {len(text)})")
-        
-        # Strategy 1: Direct numeric detection (original logic, but improved)
-        if len(text) <= 3 and text.isdigit():
-            page_num = int(text)
-            page_numbers.append(page_num)
-            print(f"    ✅ Found page number: {page_num}")
-        
-        # Strategy 2: Extract numbers from text with ellipsis (handles "...15")
-        elif "..." in text:
-            # Extract all numbers from the text
-            numbers = re.findall(r'\d+', text)
-            if numbers:
-                # Take the last/largest number found
-                page_num = int(numbers[-1])
+            # Skip empty text
+            if not text:
+                continue
+                
+            print(f"  Button {i+1}: '{text}' (length: {len(text)})")
+            
+            # Strategy 1: Direct numeric detection (original logic, but improved)
+            if len(text) <= 3 and text.isdigit():
+                page_num = int(text)
+                page_numbers.append(page_num)
+                print(f"    ✅ Found page number: {page_num}")
+            
+            # Strategy 2: Extract numbers from text with ellipsis (handles "...15")
+            elif "..." in text:
+                # Extract all numbers from the text
+                numbers = re.findall(r'\d+', text)
+                if numbers:
+                    # Take the last/largest number found
+                    page_num = int(numbers[-1])
+                    potential_last_pages.append(page_num)
+                    print(f"    ✅ Found ellipsis page: {page_num} from '{text}'")
+            
+            # Strategy 3: Look for longer numeric strings (handles edge cases)
+            elif text.isdigit() and len(text) <= 5:  # Allow up to 5 digits (99999 pages max)
+                page_num = int(text)
                 potential_last_pages.append(page_num)
-                print(f"    ✅ Found ellipsis page: {page_num} from '{text}'")
+                print(f"    ✅ Found long page number: {page_num}")
+            
+            # Strategy 4: Extract numbers from mixed text (handles "Page 15", "15 results", etc.)
+            else:
+                numbers = re.findall(r'\d+', text)
+                if numbers:
+                    for num_str in numbers:
+                        if 1 <= int(num_str) <= 9999:  # Reasonable page range
+                            potential_last_pages.append(int(num_str))
+                            print(f"    ⚠️ Potential page from '{text}': {num_str}")
         
-        # Strategy 3: Look for longer numeric strings (handles edge cases)
-        elif text.isdigit() and len(text) <= 5:  # Allow up to 5 digits (99999 pages max)
-            page_num = int(text)
-            potential_last_pages.append(page_num)
-            print(f"    ✅ Found long page number: {page_num}")
+        # Combine all found numbers
+        all_pages = page_numbers + potential_last_pages
         
-        # Strategy 4: Extract numbers from mixed text (handles "Page 15", "15 results", etc.)
+        if all_pages:
+            last_page = max(all_pages)
+            print(f"\n✅ Final result: Last page = {last_page}")
+            print(f"   All pages found: {sorted(set(all_pages))}")
+            return last_page
         else:
+            print(f"\n❌ No pages found, defaulting to 1")
+            return 1
+
+    def find_last_page_simple_fallback(buttons):
+        """
+        Simpler approach: just look for the highest number in any button text
+        This is more aggressive but should work for most cases
+        """
+        
+        all_numbers = []
+        
+        for item in buttons:
+            text = item.text.strip()
+            # Extract ALL numbers from each button text
             numbers = re.findall(r'\d+', text)
-            if numbers:
-                for num_str in numbers:
-                    if 1 <= int(num_str) <= 9999:  # Reasonable page range
-                        potential_last_pages.append(int(num_str))
-                        print(f"    ⚠️ Potential page from '{text}': {num_str}")
-    
-    # Combine all found numbers
-    all_pages = page_numbers + potential_last_pages
-    
-    if all_pages:
-        last_page = max(all_pages)
-        print(f"\n✅ Final result: Last page = {last_page}")
-        print(f"   All pages found: {sorted(set(all_pages))}")
-        return last_page
-    else:
-        print(f"\n❌ No pages found, defaulting to 1")
-        return 1
+            for num_str in numbers:
+                num = int(num_str)
+                # Only consider reasonable page numbers (filter out phone numbers, prices, etc.)
+                if 1 <= num <= 9999:
+                    all_numbers.append(num)
+        
+        if all_numbers:
+            return max(all_numbers)
+        else:
+            return 1
 
-
-def find_last_page_simple_fallback(buttons):
-    """
-    Simpler approach: just look for the highest number in any button text
-    This is more aggressive but should work for most cases
-    """
-    
-    all_numbers = []
-    
-    for item in buttons:
-        text = item.text.strip()
-        # Extract ALL numbers from each button text
-        numbers = re.findall(r'\d+', text)
-        for num_str in numbers:
-            num = int(num_str)
-            # Only consider reasonable page numbers (filter out phone numbers, prices, etc.)
-            if 1 <= num <= 9999:
-                all_numbers.append(num)
-    
-    if all_numbers:
-        return max(all_numbers)
-    else:
-        return 1
-
-
-def find_last_page_strategic(buttons):
-    """
-    Strategic approach: try multiple methods and pick the most reasonable result
-    """
-    
-    # Method 1: Original logic (short numeric text only)
-    method1_pages = []
-    for item in buttons:
-        text = item.text.strip()
-        if len(text) <= 3 and len(text) > 0 and text.isdigit():
-            method1_pages.append(int(text))
-    
-    # Method 2: Look for ellipsis patterns
-    method2_pages = []
-    for item in buttons:
-        text = item.text.strip()
-        if "..." in text:
+    def find_last_page_strategic(buttons):
+        """
+        Strategic approach: try multiple methods and pick the most reasonable result
+        """
+        
+        # Method 1: Original logic (short numeric text only)
+        method1_pages = []
+        for item in buttons:
+            text = item.text.strip()
+            if len(text) <= 3 and len(text) > 0 and text.isdigit():
+                method1_pages.append(int(text))
+        
+        # Method 2: Look for ellipsis patterns
+        method2_pages = []
+        for item in buttons:
+            text = item.text.strip()
+            if "..." in text:
+                numbers = re.findall(r'\d+', text)
+                if numbers:
+                    method2_pages.append(int(numbers[-1]))
+        
+        # Method 3: All numbers approach
+        method3_pages = []
+        for item in buttons:
+            text = item.text.strip()
             numbers = re.findall(r'\d+', text)
-            if numbers:
-                method2_pages.append(int(numbers[-1]))
-    
-    # Method 3: All numbers approach
-    method3_pages = []
-    for item in buttons:
-        text = item.text.strip()
-        numbers = re.findall(r'\d+', text)
-        for num_str in numbers:
-            num = int(num_str)
-            if 1 <= num <= 999:  # Reasonable page range
-                method3_pages.append(num)
-    
-    print(f"Method 1 (original): {method1_pages}")
-    print(f"Method 2 (ellipsis): {method2_pages}")
-    print(f"Method 3 (all nums): {sorted(set(method3_pages)) if method3_pages else []}")
-    
-    # Decision logic
-    if method2_pages:
-        # If we found ellipsis patterns, trust those (likely the real last page)
-        result = max(method2_pages)
-        print(f"✅ Using ellipsis method: {result}")
-        return result
-    elif method1_pages:
-        # Fall back to original method
-        result = max(method1_pages)
-        print(f"✅ Using original method: {result}")
-        return result
-    elif method3_pages:
-        # Last resort: highest reasonable number
-        result = max(method3_pages)
-        print(f"⚠️ Using fallback method: {result}")
-        return result
-    else:
-        print(f"❌ No pages found, defaulting to 1")
-        return 1
+            for num_str in numbers:
+                num = int(num_str)
+                if 1 <= num <= 999:  # Reasonable page range
+                    method3_pages.append(num)
+        
+        print(f"Method 1 (original): {method1_pages}")
+        print(f"Method 2 (ellipsis): {method2_pages}")
+        print(f"Method 3 (all nums): {sorted(set(method3_pages)) if method3_pages else []}")
+        
+        # Decision logic
+        if method2_pages:
+            # If we found ellipsis patterns, trust those (likely the real last page)
+            result = max(method2_pages)
+            print(f"✅ Using ellipsis method: {result}")
+            return result
+        elif method1_pages:
+            # Fall back to original method
+            result = max(method1_pages)
+            print(f"✅ Using original method: {result}")
+            return result
+        elif method3_pages:
+            # Last resort: highest reasonable number
+            result = max(method3_pages)
+            print(f"⚠️ Using fallback method: {result}")
+            return result
+        else:
+            print(f"❌ No pages found, defaulting to 1")
+            return 1
 
+    # Test function for testing pagination
+    def test_pagination_methods():
+        """
+        Test the pagination detection with mock data
+        """
+        import re
+        
+        # Mock buttons for testing
+        class MockButton:
+            def __init__(self, text):
+                self.text = text
+        
+        # Test different pagination scenarios
+        test_cases = [
+            # Scenario 1: Simple pagination
+            [MockButton("1"), MockButton("2"), MockButton("3"), MockButton("4"), MockButton("5")],
+            
+            # Scenario 2: Pagination with ellipsis  
+            [MockButton("1"), MockButton("2"), MockButton("3"), MockButton("..."), MockButton("...15")],
+            
+            # Scenario 3: Mixed content
+            [MockButton("Previous"), MockButton("1"), MockButton("2"), MockButton("..."), MockButton("...25"), MockButton("Next")],
+            
+            # Scenario 4: No clear pagination
+            [MockButton("Home"), MockButton("Contact"), MockButton("About")],
+        ]
+        
+        for i, test_buttons in enumerate(test_cases, 1):
+            print(f"\n{'='*50}")
+            print(f"TEST CASE {i}: {[b.text for b in test_buttons]}")
+            print(f"{'='*50}")
+            
+            result = find_last_page_strategic(test_buttons)
+            print(f"Final result: {result}")
 
-# Test function you can use in your debug script
-def test_pagination_methods():
-    """
-    Test the pagination detection with mock data
-    """
-    import re
-    
-    # Mock buttons for testing
-    class MockButton:
-        def __init__(self, text):
-            self.text = text
-    
-    # Test different pagination scenarios
-    test_cases = [
-        # Scenario 1: Simple pagination
-        [MockButton("1"), MockButton("2"), MockButton("3"), MockButton("4"), MockButton("5")],
-        
-        # Scenario 2: Pagination with ellipsis  
-        [MockButton("1"), MockButton("2"), MockButton("3"), MockButton("..."), MockButton("...15")],
-        
-        # Scenario 3: Mixed content
-        [MockButton("Previous"), MockButton("1"), MockButton("2"), MockButton("..."), MockButton("...25"), MockButton("Next")],
-        
-        # Scenario 4: No clear pagination
-        [MockButton("Home"), MockButton("Contact"), MockButton("About")],
-    ]
-    
-    for i, test_buttons in enumerate(test_cases, 1):
-        print(f"\n{'='*50}")
-        print(f"TEST CASE {i}: {[b.text for b in test_buttons]}")
-        print(f"{'='*50}")
-        
-        result = find_last_page_strategic(test_buttons)
-        print(f"Final result: {result}")
-
-# Updated code for your scraper
-def improved_page_detection(buttons):
-    """
-    Drop-in replacement for your current page detection logic
-    """
+    # Needs Review
+    def improved_page_detection(buttons):
+        """
+        Drop-in replacement for your current page detection logic
+        """
     return find_last_page_strategic(buttons)
 
 async def debug_inmuebles24_scraper():
@@ -416,13 +418,14 @@ async def debug_inmuebles24_scraper():
         "propertyType": "departamentos"
     }
     
-    # URLs for inmuebles24
+    # Base URL for inmuebles24
     inmuebles24_main_url = "https://www.inmuebles24.com/"
+    
     
     print("🔍 DEBUG: Inmuebles24 Scraper Analysis")
     print("=" * 50)
     
-    # Step 1: Test the working URL you provided
+    # Step 1: Test the working URL to know if the page is working
     working_url = "https://www.inmuebles24.com/departamentos-en-venta-en-ciudad-de-mexico-mas-de-5-pesos.html"
     print(f"\n📍 Step 1: Testing your working URL")
     print(f"URL: {working_url}")
@@ -443,7 +446,7 @@ async def debug_inmuebles24_scraper():
     # Step 2: Analyze URL pattern for inmuebles24
     print(f"\n📍 Step 2: Analyzing URL patterns for inmuebles24")
     
-    # Inmuebles24 URL pattern seems to be:
+    # Inmuebles24 URL pattern seems to be (FOR THE FIRST PAGE):
     # /{property-type}-en-{rentOrBuy}-en-{city}-mas-de-5-pesos.html
     
     # Construct URL based on pattern
@@ -459,6 +462,7 @@ async def debug_inmuebles24_scraper():
     print(f"Constructed URL: {constructed_url}")
     print(f"Working URL:     {working_url}")
     print(f"URLs match: {constructed_url == working_url}")
+    
     """
     # Step 3: Find maximum pages (adapted for inmuebles24)
     print(f"\n📍 Step 3: Finding maximum pages")
@@ -503,27 +507,29 @@ async def debug_inmuebles24_scraper():
     print(f"\n📍 Step 4: Testing property link extraction")
     
     try:
-        print("Request test:")
-        html = requests.get(working_url)
-        print(html.text)
-        soup = BeautifulSoup(html.text, "html.parser")
+        
+        
         print("Playwright test:")
         url = working_url
+        
         # Then, get with Playwright
         print("\n🎭 Getting with Playwright (real browser)...")
         playwright_data = await capture_with_playwright(url, headless=False)
 
         # Save screenshot
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        screenshot_path = f"Inmuebles24 screenshot_{timestamp}.png"
+        screenshot_path = f"screenshots/Inmuebles24 screenshot_{timestamp}.png"
         with open(screenshot_path, 'wb') as f:
             f.write(playwright_data['screenshots']['full'])
         print(f"📸 Screenshot saved: {screenshot_path}")
         
+
+        # Capture prices found
+        # Using the visible text method
         print(f"\n  Playwright - Visible Text ({len(playwright_data['prices']['visible_text'])} total):")
         for i, price in enumerate(playwright_data['prices']['visible_text'][:5], 1):
             print(f"    {i}. {price['text']}")
-        
+        # Using the price classes method
         print(f"\n  Playwright - Span Prices ({len(playwright_data['prices']['span_prices'])} total):")
         for i, price in enumerate(playwright_data['prices']['span_prices'], 1):
             print(f"    {i}. {price['text']}")
