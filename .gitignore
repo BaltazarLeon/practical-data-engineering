@@ -179,9 +179,4 @@ src/pipelines/real-estate/realestate/notebooks/SFO_Delays_by_Destination.ipynb
 
 src/pipelines/real-estate/realestate/notebooks/Yusuke Nakaichi - House Prices.ipynb
 src/test.py
-immoscout_detailed_comparison_20250804_225125.json
-immoscout_screenshot_20250804_225125.png
-Inmuebles24 screenshot_20250804_231346.png
-Inmuebles24 screenshot_20250804_231731.png
-Inmuebles24 screenshot_20250804_232124.png
-Inmuebles24 screenshot_20250807_052332.png
+backgroundtests/screenshots/

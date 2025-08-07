@@ -518,7 +518,7 @@ async def debug_inmuebles24_scraper():
 
         # Save screenshot
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        screenshot_path = f"screenshots/Inmuebles24 screenshot_{timestamp}.png"
+        screenshot_path = f"backgroundtests/screenshots/Inmuebles24 screenshot_{timestamp}.png"
         with open(screenshot_path, 'wb') as f:
             f.write(playwright_data['screenshots']['full'])
         print(f"📸 Screenshot saved: {screenshot_path}")
