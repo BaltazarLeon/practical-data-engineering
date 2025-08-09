@@ -182,3 +182,4 @@ src/test.py
 backgroundtests/screenshots/
 backgroundtests/jsons-logs/
 backgroundtests/html/
+backgroundtests/csv/
