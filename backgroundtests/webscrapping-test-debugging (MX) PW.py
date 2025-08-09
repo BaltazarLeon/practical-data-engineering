@@ -13,6 +13,71 @@ from bs4 import BeautifulSoup
 from typing import Dict, List, Any
 
 
+# Function to merge multiple run data dictionaries
+# This is useful for combining results from multiple runs of the scraper
+# into a single comprehensive dataset.
+# Each run data dictionary should have the same structure.
+def merge_playwright_data(run_data_list: list):
+    """
+    Merges a list of run data dictionaries by type (prices, property_cards, etc.).
+    Returns a single merged dictionary.
+    """
+    merged_data = {
+        'prices': {
+            'visible_text': [],
+            'price_classes': [],
+            'span_prices': [],
+            'structured_data': []
+        },
+        'property_cards': [],
+        'screenshots': [],
+        'network_requests': [],
+        'console_logs': [],
+        'metrics': []
+    }
+
+    for run_data in run_data_list:
+        # Merge prices
+        for key in merged_data['prices']:
+            merged_data['prices'][key].extend(run_data['prices'].get(key, []))
+        # Merge property cards
+        merged_data['property_cards'].extend(run_data.get('property_cards', []))
+        # Merge screenshots (optional: just keep all, or only the first)
+        merged_data['screenshots'].append(run_data['screenshots'].get('full'))
+        # Merge network requests and console logs
+        merged_data['network_requests'].extend(run_data.get('network_requests', []))
+        merged_data['console_logs'].extend(run_data.get('console_logs', []))
+        # Merge metrics
+        merged_data['metrics'].append(run_data.get('metrics'))
+
+    return merged_data
+
+# Function to run multiple cycles and merge results
+async def run_playwright_historical(url: str, n: int = 2, headless: bool = False):
+    """
+    Executes capture_with_playwright for a URL, stores results in historicaldata,
+    then runs n cycles, storing each result in rundata and merges into historicaldata.
+    """
+    run_data_list = []
+
+    # Step 1: Initial run
+    print(f"Step 1: Running initial capture for {url}")
+    initial_data = await capture_with_playwright(url, headless=headless)
+    run_data_list.append(initial_data)
+
+    # Step 2: Loop for n cycles
+    for i in range(1, n + 1):
+        print(f"Step 2: Running capture {i} for {url}")
+        rundata = await capture_with_playwright(url, headless=headless)
+        run_data_list.append(rundata)
+
+    # Merge all runs into historicaldata
+    historicaldata = merge_playwright_data(run_data_list)
+
+    print(f"All runs complete. Total runs merged: {len(run_data_list)}")
+    return historicaldata
+
+# You need to have merge_playwright_data defined as in previous examples.
 
 # Function to Capture Data using Playwright I think I need to separate this more into models
 async def capture_with_playwright(url, headless=False):
@@ -538,8 +603,9 @@ async def debug_inmuebles24_scraper():
         
         # Then, get with Playwright
         print("\n🎭 Getting with Playwright (real browser)...")
-        playwright_data = await capture_with_playwright(url, headless=False)
-
+        playwright_data = await run_playwright_historical(url, headless=False)
+        """
+        print(f"✅ Playwright data captured successfully")
         # Save screenshot
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         screenshot_path = f"backgroundtests/screenshots/Inmuebles24 screenshot_{timestamp}.png"
@@ -547,7 +613,7 @@ async def debug_inmuebles24_scraper():
             f.write(playwright_data['screenshots']['full'])
         print(f"📸 Screenshot saved: {screenshot_path}")
         
-
+        """    
         # Capture prices found
         # Using the visible text method
         print(f"\n  Playwright - Visible Text ({len(playwright_data['prices']['visible_text'])} total):")
@@ -557,7 +623,7 @@ async def debug_inmuebles24_scraper():
         print(f"\n  Playwright - Span Prices ({len(playwright_data['prices']['span_prices'])} total):")
         for i, price in enumerate(playwright_data['prices']['span_prices'], 1):
             print(f"    {i}. {price['text']}")
-
+        
         # Show property cards found
         print(f"\n  Playwright - Property Cards ({len(playwright_data['property_cards'])} total):")
         for card in playwright_data['property_cards']:

@@ -249,7 +249,7 @@ async def main():
     print("\n" + "="*70)
     print("📊 COMPARISON RESULTS")
     print("="*70)
-    
+        
     print(f"\n📄 Page Titles:")
     print(f"  Requests:   {requests_data['title']}")
     print(f"  Playwright: {playwright_data['title']}")
