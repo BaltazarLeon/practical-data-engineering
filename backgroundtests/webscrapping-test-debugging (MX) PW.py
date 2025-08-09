@@ -157,24 +157,76 @@ async def capture_with_playwright(url, headless=False):
             const container = document.querySelector('div.postingsList-module__postings-container');
             if (!container) return [];
             return Array.from(container.children).map((card, idx) => {
-            // Find the first descendant with both data-id and data-to-posting attributes
-            const subchild = card.querySelector('[data-id][data-to-posting]');
-            let dataId = null, dataToPosting = null, url = null;
-            if (subchild) {
-                dataId = subchild.getAttribute('data-id');
-                dataToPosting = subchild.getAttribute('data-to-posting');
-                // Use the data-to-posting attribute as the link
-                url = dataToPosting || null;
-            }
-            return {
-                index: idx + 1,
-                data_id: dataId,
-                data_to_posting: dataToPosting,
-                url: url
-            };
+                // Core link & IDs
+                const subchild = card.querySelector('[data-id][data-to-posting]');
+                let dataId = null, dataToPosting = null, url = null;
+                if (subchild) {
+                    dataId = subchild.getAttribute('data-id');
+                    dataToPosting = subchild.getAttribute('data-to-posting');
+                    url = dataToPosting || null;
+                }
+
+                // Title, location, agency
+                const titleEl   = card.querySelector('h2, h3, [class*="title"], [data-qa="POSTING_CARD_TITLE"]');
+                const addressEl = card.querySelector('[class*="location"], [data-qa="POSTING_CARD_LOCATION"], [class*="address"]');
+                const agencyEl  = card.querySelector('[class*="agency"], [data-qa="POSTING_CARD_AGENT_NAME"], [class*="broker"]');
+
+                // Price
+                const priceEl = card.querySelector('div.postingPrices-module__price[data-qa="POSTING_CARD_PRICE"], [class*="price"], [data-qa*="PRICE"]');
+                const priceText = priceEl ? priceEl.innerText.trim() : null;
+
+                // Features (beds, baths, m², parking)
+                let bedrooms=null, bathrooms=null, parking=null, area_m2=null;
+                const featRoot = card.querySelector('[class*="features"], [data-qa*="FEATURES"], ul, dl');
+                const featText = featRoot ? featRoot.innerText : '';
+                const num = (s) => {
+                    const m = (s || '').match(/\\d+(?:[.,]\\d+)?/);
+                    return m ? parseFloat(m[0].replace(',', '.')) : null;
+                };
+                if (/rec|hab|dorm|bed/i.test(featText)) bedrooms = num(featText);
+                if (/bañ|bath/i.test(featText))         bathrooms = num(featText);
+                if (/estac|park|coch/i.test(featText))  parking = num(featText);
+                if (/m²|m2|metros/i.test(featText))     area_m2 = num(featText);
+
+                // Image
+                const imgEl = card.querySelector('img[src], img[data-src], [style*="background-image"]');
+                let image_url = null;
+                if (imgEl) {
+                    if (imgEl.tagName === 'IMG') {
+                        image_url = imgEl.getAttribute('src') || imgEl.getAttribute('data-src');
+                    } else {
+                        const st = imgEl.getAttribute('style') || '';
+                        const m = st.match(/url\\(["']?(.*?)["']?\\)/i);
+                        image_url = m ? m[1] : null;
+                    }
+                }
+
+                // Badges
+                const badges = Array.from(card.querySelectorAll('[class*="badge"], [class*="chip"], [data-qa*="BADGE"]'))
+                                    .map(b => b.innerText.trim())
+                                    .filter(Boolean);
+
+                return {
+                    index: idx + 1,
+                    data_id: dataId,
+                    data_to_posting: dataToPosting,
+                    url,
+                    title: titleEl ? titleEl.innerText.trim() : null,
+                    address: addressEl ? addressEl.innerText.trim() : null,
+                    agency: agencyEl ? agencyEl.innerText.trim() : null,
+                    price_text: priceText,
+                    bedrooms,
+                    bathrooms,
+                    parking,
+                    area_m2,
+                    image_url,
+                    badges
+                };
             });
         }''')
-        results['property_cards'] = property_cards        
+
+        results['property_cards'] = property_cards
+    
         # Capture screenshots
         results['screenshots']['full'] = await page.screenshot(full_page=True)
         
@@ -244,59 +296,7 @@ async def capture_with_playwright(url, headless=False):
             return prices;
         }''')
         results['prices']['span_prices'] = specific_prices
-        """
-        # Method 4: Check for JSON-LD structured data
-        json_ld_data = await page.evaluate('''() => {
-            const scripts = document.querySelectorAll('script[type="application/ld+json"]');
-            const data = [];
-            scripts.forEach(script => {
-                try {
-                    data.push(JSON.parse(script.textContent));
-                } catch (e) {}
-            });
-            return data;
-        }''')
-        results['prices']['structured_data'] = json_ld_data
-        
-        # Get property cards/listings
-        property_cards = await page.evaluate('''() => {
-            // Try multiple selectors for property cards
-            const selectors = [
-                '[class*="listing"]',
-                '[class*="Listing"]',
-                '[class*="property"]',
-                '[class*="Property"]',
-                '[class*="result"]',
-                '[class*="Result"]',
-                'article',
-                '[data-test*="property"]'
-            ];
-            
-            const cards = [];
-            for (const selector of selectors) {
-                const elements = document.querySelectorAll(selector);
-                if (elements.length > 0) {
-                    elements.forEach(el => {
-                        // Look for price within each card
-                        const priceEl = el.querySelector('[class*="price"], [class*="Price"]');
-                        const titleEl = el.querySelector('h2, h3, h4, [class*="title"], [class*="Title"]');
-                        
-                        if (priceEl || titleEl) {
-                            cards.push({
-                                selector: selector,
-                                price: priceEl ? priceEl.innerText : 'No price',
-                                title: titleEl ? titleEl.innerText : 'No title',
-                                classes: el.className
-                            });
-                        }
-                    });
-                    if (cards.length > 0) break;
-                }
-            }
-            return cards;
-        }''')
-        results['property_cards'] = property_cards
-        """
+ 
         # Capture network activity
         page.on('request', lambda request: results['network_requests'].append({
             'url': request.url,
@@ -461,8 +461,18 @@ async def debug_inmuebles24_scraper():
         # Show property cards found
         print(f"\n  Playwright - Property Cards ({len(playwright_data['property_cards'])} total):")
         for card in playwright_data['property_cards']:
-            print(f"    - {card['index']}: {card['url']} (data-id: {card['data_id']})")
-        
+            print(
+                f"    - #{card['index']}: {card.get('title') or 'No title'}\n"
+                f"      URL: {card.get('url')}\n"
+                f"      Data ID: {card.get('data_id')}\n"
+                f"      Price: {card.get('price_text') or 'No price'}\n"
+                f"      Address: {card.get('address') or 'No address'}\n"
+                f"      Bedrooms: {card.get('bedrooms')}, "
+                f"Bathrooms: {card.get('bathrooms')}, "
+                f"Parking: {card.get('parking')}, "
+                f"Area m²: {card.get('area_m2')}\n"
+                f"      Badges: {', '.join(card.get('badges', [])) if card.get('badges') else 'None'}"
+            )
 
 
         """
