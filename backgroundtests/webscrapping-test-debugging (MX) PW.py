@@ -3,6 +3,7 @@ Independent debug script for Inmuebles24 scraper
 Based on the original scraping logic but adapted for inmuebles24.com
 """
 
+import math
 import asyncio
 import json
 from datetime import datetime
@@ -53,7 +54,7 @@ def merge_playwright_data(run_data_list: list):
     return merged_data
 
 # Function to run multiple cycles and merge results
-async def run_playwright_historical(url: str, n: int = 2, headless: bool = False):
+async def run_playwright_historical(url: str, n: int = 3, headless: bool = False):
     """
     Executes capture_with_playwright for a URL, stores results in historicaldata,
     then runs n cycles, storing each result in rundata and merges into historicaldata.
@@ -65,10 +66,29 @@ async def run_playwright_historical(url: str, n: int = 2, headless: bool = False
     initial_data = await capture_with_playwright(url, headless=headless)
     run_data_list.append(initial_data)
 
+
+    # After capturing initial_data
+    html_content = initial_data['content']
+
+    # Extract the title text using regex
+    match = re.search(r'<h1[^>]*class="postingsTitle-module__title"[^>]*>([\d,.]+)', html_content)
+    if match:
+        num_str = match.group(1).replace(',', '')
+        total_listings = int(num_str)
+        lastPageNum = math.ceil(total_listings / 30)
+        print(f"Extracted total listings: {total_listings}")
+        print(f"Calculated lastPageNum: {lastPageNum}")
+    else:
+        lastPageNum = 1956
+        print("Could not extract total listings, defaulting lastPageNum to 1")
+
+
     # Step 2: Loop for n cycles
-    for i in range(1, n + 1):
-        print(f"Step 2: Running capture {i} for {url}")
-        rundata = await capture_with_playwright(url, headless=headless)
+    for i in range(2, n + 1):
+        # Insert -pagina-{i} before .html in the URL
+        paged_url = url.replace('.html', f'-pagina-{i}.html')
+        print(f"Step 2: Running capture {i} for {paged_url}")
+        rundata = await capture_with_playwright(paged_url, headless=headless)
         run_data_list.append(rundata)
 
     # Merge all runs into historicaldata
