@@ -2,7 +2,7 @@
 Independent debug script for Inmuebles24 scraper
 Based on the original scraping logic but adapted for inmuebles24.com
 """
-
+import pandas as pd
 import math
 import asyncio
 import json
@@ -151,82 +151,120 @@ async def capture_with_playwright(url, headless=False):
             'console_logs': []
         }
         
-
-        # Capture page content
         property_cards = await page.evaluate('''() => {
-            const container = document.querySelector('div.postingsList-module__postings-container');
-            if (!container) return [];
-            return Array.from(container.children).map((card, idx) => {
-                // Core link & IDs
-                const subchild = card.querySelector('[data-id][data-to-posting]');
-                let dataId = null, dataToPosting = null, url = null;
-                if (subchild) {
-                    dataId = subchild.getAttribute('data-id');
-                    dataToPosting = subchild.getAttribute('data-to-posting');
-                    url = dataToPosting || null;
+        const container = document.querySelector('div.postingsList-module__postings-container');
+        if (!container) return [];
+
+        // numbers: drop commas (thousands), keep dot as decimal if present
+        const toNumber = (s) => {
+            if (!s) return null;
+            const cleaned = s.replace(/,/g, '');
+            const m = cleaned.match(/\\d+(?:\\.\\d+)?/);
+            return m ? parseFloat(m[0]) : null;
+        };
+
+        // get FIRST number only (handles "2 a 4", "50 – 100", etc.)
+        const firstNumber = (s) => {
+            if (!s) return null;
+            const m = s.replace(/,/g, '').match(/\\d+(?:\\.\\d+)?/);
+            return m ? parseFloat(m[0]) : null;
+        };
+
+        return Array.from(container.children).map((card) => {
+            // Core link & ID
+            const sub = card.querySelector('[data-id][data-to-posting]');
+            const data_id = sub ? sub.getAttribute('data-id') : null;
+            const url     = sub ? sub.getAttribute('data-to-posting') || null : null;
+
+            // Precio + Moneda (same selector)
+            const priceEl = card.querySelector('div.postingPrices-module__price[data-qa="POSTING_CARD_PRICE"]');
+            let precio = null, moneda = null;
+            if (priceEl) {
+            const raw = priceEl.innerText.trim();
+            moneda = /USD/i.test(raw) ? 'USD' : 'MN';
+            precio = toNumber(raw); // commas removed -> numeric value
+            }
+
+            // Zona: text AFTER the comma from location h2
+            const locEl = card.querySelector('h2.postingLocations-module__location-text[data-qa="POSTING_CARD_LOCATION"]');
+            let zona = null;
+            if (locEl) {
+            const parts = locEl.innerText.split(',');
+            if (parts.length > 1) zona = parts[1].trim();
+            }
+
+            // Dirección + Código postal (5 digits inside address div)
+            const addrEl = card.querySelector('div.postingLocations-module__location-address');
+            let direccion = null, codigo_postal = null;
+            if (addrEl) {
+            const t = addrEl.innerText.trim();
+            direccion = t;
+            const cp = t.match(/\\b\\d{5}\\b/);
+            if (cp) codigo_postal = cp[0];
+            }
+
+            // Features: tamaño lote, recámaras, baños, estacionamientos
+            let tamano_lote = null, recamaras = null, banos = null, estacionamientos = null;
+            const featuresEl = card.querySelector('h3[data-qa="POSTING_CARD_FEATURES"]');
+            if (featuresEl) {
+            featuresEl.querySelectorAll('span').forEach(span => {
+                const txt = (span.innerText || '').trim().toLowerCase();
+
+                // tamaño lote: must end with "m² lote"
+                if (/(m²|m2) lote$/.test(txt)) {
+                tamano_lote = firstNumber(txt);
                 }
 
-                // Title, location, agency
-                const titleEl   = card.querySelector('h2, h3, [class*="title"], [data-qa="POSTING_CARD_TITLE"]');
-                const addressEl = card.querySelector('[class*="location"], [data-qa="POSTING_CARD_LOCATION"], [class*="address"]');
-                const agencyEl  = card.querySelector('[class*="agency"], [data-qa="POSTING_CARD_AGENT_NAME"], [class*="broker"]');
-
-                // Price
-                const priceEl = card.querySelector('div.postingPrices-module__price[data-qa="POSTING_CARD_PRICE"], [class*="price"], [data-qa*="PRICE"]');
-                const priceText = priceEl ? priceEl.innerText.trim() : null;
-
-                // Features (beds, baths, m², parking)
-                let bedrooms=null, bathrooms=null, parking=null, area_m2=null;
-                const featRoot = card.querySelector('[class*="features"], [data-qa*="FEATURES"], ul, dl');
-                const featText = featRoot ? featRoot.innerText : '';
-                const num = (s) => {
-                    const m = (s || '').match(/\\d+(?:[.,]\\d+)?/);
-                    return m ? parseFloat(m[0].replace(',', '.')) : null;
-                };
-                if (/rec|hab|dorm|bed/i.test(featText)) bedrooms = num(featText);
-                if (/bañ|bath/i.test(featText))         bathrooms = num(featText);
-                if (/estac|park|coch/i.test(featText))  parking = num(featText);
-                if (/m²|m2|metros/i.test(featText))     area_m2 = num(featText);
-
-                // Image
-                const imgEl = card.querySelector('img[src], img[data-src], [style*="background-image"]');
-                let image_url = null;
-                if (imgEl) {
-                    if (imgEl.tagName === 'IMG') {
-                        image_url = imgEl.getAttribute('src') || imgEl.getAttribute('data-src');
-                    } else {
-                        const st = imgEl.getAttribute('style') || '';
-                        const m = st.match(/url\\(["']?(.*?)["']?\\)/i);
-                        image_url = m ? m[1] : null;
-                    }
+                // recámaras: must end with "rec."
+                if (/rec\\.$/.test(txt)) {
+                recamaras = firstNumber(txt);
                 }
 
-                // Badges
-                const badges = Array.from(card.querySelectorAll('[class*="badge"], [class*="chip"], [data-qa*="BADGE"]'))
-                                    .map(b => b.innerText.trim())
-                                    .filter(Boolean);
+                // baños: must end with "baños" or "baño"
+                if (/baños?$/.test(txt)) {
+                banos = firstNumber(txt);
+                }
 
-                return {
-                    index: idx + 1,
-                    data_id: dataId,
-                    data_to_posting: dataToPosting,
-                    url,
-                    title: titleEl ? titleEl.innerText.trim() : null,
-                    address: addressEl ? addressEl.innerText.trim() : null,
-                    agency: agencyEl ? agencyEl.innerText.trim() : null,
-                    price_text: priceText,
-                    bedrooms,
-                    bathrooms,
-                    parking,
-                    area_m2,
-                    image_url,
-                    badges
-                };
+                // estacionamientos: must end with "estac."
+                if (/estac\\.$/.test(txt)) {
+                estacionamientos = firstNumber(txt);
+                }
             });
+            }
+
+            // Descripción
+            const descEl = card.querySelector('h3.postingCard-module__posting-description a');
+            const descripcion = descEl ? descEl.innerText.trim() : null;
+
+            // URL vendedor (logo src)
+            const sellerImg = card.querySelector('div.postingPublisher-module__container-logo-publisher img');
+            const url_vendedor = sellerImg ? sellerImg.getAttribute('src') : null;
+
+            // Tipo de inmueble (manual later)
+            const tipo_inmueble = null;
+
+            return {
+            data_id,
+            url,
+            precio,
+            moneda,
+            zona,
+            direccion,
+            codigo_postal,
+            tamano_lote,
+            recamaras,
+            banos,
+            estacionamientos,
+            descripcion,
+            url_vendedor,
+            tipo_inmueble
+            };
+        });
         }''')
 
         results['property_cards'] = property_cards
-    
+
+
         # Capture screenshots
         results['screenshots']['full'] = await page.screenshot(full_page=True)
         
@@ -393,6 +431,9 @@ async def debug_inmuebles24_scraper():
     try:
         html = requests.get(working_url)
         soup = BeautifulSoup(html.text, "html.parser")
+        # Capture screenshots
+        results['screenshots']['full'] = await page.screenshot(full_page=True)
+        
         
         # Try different pagination selectors common in real estate sites
         # First try finding pagination container
@@ -457,7 +498,7 @@ async def debug_inmuebles24_scraper():
         print(f"\n  Playwright - Span Prices ({len(playwright_data['prices']['span_prices'])} total):")
         for i, price in enumerate(playwright_data['prices']['span_prices'], 1):
             print(f"    {i}. {price['text']}")
-        
+        """
         # Show property cards found
         print(f"\n  Playwright - Property Cards ({len(playwright_data['property_cards'])} total):")
         for card in playwright_data['property_cards']:
@@ -468,11 +509,15 @@ async def debug_inmuebles24_scraper():
                 f"      Price: {card.get('price_text') or 'No price'}\n"
                 f"      Address: {card.get('address') or 'No address'}\n"
                 f"      Bedrooms: {card.get('bedrooms')}, "
-                f"Bathrooms: {card.get('bathrooms')}, "
+                f"Bathrooms: {card.get('bathrooms')}, "             
                 f"Parking: {card.get('parking')}, "
                 f"Area m²: {card.get('area_m2')}\n"
                 f"      Badges: {', '.join(card.get('badges', [])) if card.get('badges') else 'None'}"
             )
+        """
+        df = pd.DataFrame(playwright_data['property_cards'])
+        df.to_csv("backgroundtests/csv/property_cards.csv", index=False, encoding="utf-8")
+        print(f"✅ Saved {len(df)} property cards to property_cards.csv")
 
 
         """
