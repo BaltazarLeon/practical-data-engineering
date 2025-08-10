@@ -48,7 +48,7 @@ def merge_playwright_data(run_data_list: list):
     return merged_data
 
 # Function to run multiple cycles and merge results
-async def run_playwright_historical(url: str,property_type=None ,n: int = 3, headless: bool = False):
+async def run_playwright_historical(url: str,property_type=None ,n: int = None, headless: bool = False):
     """
     Executes capture_with_playwright for a URL, stores results in historicaldata,
     then runs n cycles, storing each result in rundata and merges into historicaldata.
@@ -76,8 +76,12 @@ async def run_playwright_historical(url: str,property_type=None ,n: int = 3, hea
         lastPageNum = 1
         print("Could not extract total listings, defaulting lastPageNum to 1")
 
-    #if lastPageNum > n:
-    #    lastPageNum = n  # Limit to 3 for testing purposes
+    if n is None:
+        print("No page limit (n) specified, scraping all pages.")
+    else:
+        print(f"Page limit (n) specified: {n}")
+        if lastPageNum > n:
+            lastPageNum = n  # Limit to 3 for testing purposes
     # Step 2: Loop for n cycles
     for i in range(2, lastPageNum + 1):
         # Insert -pagina-{i} before .html in the URL
