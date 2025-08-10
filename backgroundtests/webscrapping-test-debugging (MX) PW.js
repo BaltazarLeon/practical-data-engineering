@@ -60,47 +60,126 @@ function buildInmuebles24Url(base, slug, rentOrBuy, city) {
   return `${base}${slug}-en-${rentOrBuy}-en-${city}-mas-de-5-pesos.html`;
 }
 
-// ---------- core capture (with light stealth) ----------
-async function captureWithPlaywright(url, { propertyType = null, headless = false } = {}) {
-  const browser = await chromium.launch({
-    headless,
-    args: [
-      "--disable-blink-features=AutomationControlled",
-      "--disable-web-security",
-      "--disable-extensions",
-      "--no-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-background-timer-throttling",
-      "--disable-renderer-backgrounding",
-    ],
-  });
+// Enhanced capture function with Cloudflare bypass capabilities
+async function captureWithPlaywrightEnhanced(url, { 
+  propertyType = null, 
+  headless = false, 
+  proxy = null,
+  userDataDir = null,
+  captchaSolver = null 
+} = {}) {
+  
+  // Randomize viewport to avoid fingerprint consistency
+  const viewport = {
+    width: 1280 + Math.floor(Math.random() * 100),
+    height: 720 + Math.floor(Math.random() * 100)
+  };
 
-  const context = await browser.newContext({
-    viewport: { width: 1366, height: 768 },
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    locale: "en-US",
-    timezoneId: "America/New_York",
-    extraHTTPHeaders: {
-      "Accept":
-        "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.5",
-      "DNT": "1",
-      "Upgrade-Insecure-Requests": "1",
-      "Cache-Control": "max-age=0",
-    },
-  });
+  // Browser launch args with enhanced stealth
+  const launchArgs = [
+    "--disable-blink-features=AutomationControlled",
+    "--disable-web-security",
+    "--disable-extensions", 
+    "--no-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-background-timer-throttling",
+    "--disable-renderer-backgrounding",
+    "--disable-features=VizDisplayCompositor",
+    "--disable-ipc-flooding-protection",
+    "--disable-backgrounding-occluded-windows",
+    "--disable-component-update",
+    "--disable-client-side-phishing-detection",
+    "--disable-sync",
+    "--metrics-recording-only",
+    "--no-first-run",
+    "--mute-audio",
+    "--hide-scrollbars",
+    "--disable-component-extensions-with-background-pages",
+    "--disable-default-apps",
+    "--disable-extensions",
+    "--disable-features=TranslateUI"
+  ];
+
+  // Add proxy if provided
+  if (proxy) {
+    launchArgs.push(`--proxy-server=${proxy}`);
+  }
+
+  // Use persistent context if userDataDir provided for session continuity
+  let browser, context;
+  
+  if (userDataDir) {
+    browser = await chromium.launchPersistentContext(userDataDir, {
+      headless,
+      args: launchArgs,
+      viewport
+    });
+    context = browser; // In persistent context, browser IS the context
+  } else {
+    browser = await chromium.launch({
+      headless,
+      args: launchArgs
+    });
+    
+    context = await browser.newContext({
+      viewport,
+      // Randomize user agent slightly but keep it realistic
+      userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+      locale: "en-US",
+      timezoneId: "America/New_York", // Match with proxy location if using geo-specific proxies
+      extraHTTPHeaders: {
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Accept-Encoding": "gzip, deflate, br",
+        "DNT": "1",
+        "Upgrade-Insecure-Requests": "1",
+        "Sec-Fetch-Dest": "document",
+        "Sec-Fetch-Mode": "navigate",
+        "Sec-Fetch-Site": "none",
+        "Sec-Fetch-User": "?1",
+        "Cache-Control": "max-age=0"
+      }
+    });
+  }
 
   const page = await context.newPage();
 
-  // Remove webdriver/automation fingerprints
+  // Enhanced stealth script injection
   await page.addInitScript(() => {
+    // Remove webdriver traces
     Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-    // languages
-    Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
-    // chrome object
-    Object.defineProperty(window, "chrome", { get: () => ({ runtime: {} }) });
-    // plugins
+    
+    // Fix languages
+    Object.defineProperty(navigator, "languages", { 
+      get: () => ["en-US", "en"] 
+    });
+    
+    // Add chrome object
+    Object.defineProperty(window, "chrome", { 
+      get: () => ({ 
+        runtime: {},
+        csi: function() {},
+        loadTimes: function() {
+          return {
+            commitLoadTime: Date.now() / 1000 - Math.random(),
+            connectionInfo: 'http/1.1',
+            finishDocumentLoadTime: Date.now() / 1000 - Math.random(),
+            finishLoadTime: Date.now() / 1000 - Math.random(),
+            firstPaintAfterLoadTime: 0,
+            firstPaintTime: Date.now() / 1000 - Math.random(),
+            navigationType: 'Other',
+            npnNegotiatedProtocol: 'unknown',
+            requestTime: Date.now() / 1000 - Math.random(),
+            startLoadTime: Date.now() / 1000 - Math.random(),
+            wasAlternateProtocolAvailable: false,
+            wasFetchedViaSpdy: false,
+            wasNpnNegotiated: false
+          };
+        }
+      })
+    });
+    
+    // Mock plugins
     Object.defineProperty(navigator, "plugins", {
       get: () => [
         {
@@ -109,14 +188,31 @@ async function captureWithPlaywright(url, { propertyType = null, headless = fals
             suffixes: "pdf",
             description: "Portable Document Format",
           },
-          description: "Portable Document Format",
+          description: "Portable Document Format", 
           filename: "internal-pdf-viewer",
           length: 1,
           name: "Chrome PDF Plugin",
         },
+        {
+          0: {
+            type: "application/x-nacl",
+            suffixes: "",
+            description: "Native Client Executable",
+          },
+          1: {
+            type: "application/x-pnacl",
+            suffixes: "",
+            description: "Portable Native Client Executable",
+          },
+          description: "Native Client",
+          filename: "internal-nacl-plugin", 
+          length: 2,
+          name: "Native Client",
+        }
       ],
     });
-    // permissions
+
+    // Fix permissions
     const originalQuery = window.navigator.permissions?.query;
     if (originalQuery) {
       window.navigator.permissions.query = (parameters) =>
@@ -124,34 +220,107 @@ async function captureWithPlaywright(url, { propertyType = null, headless = fals
           ? Promise.resolve({ state: Notification.permission })
           : originalQuery(parameters);
     }
+
+    // Mock WebGL
+    const getParameter = WebGLRenderingContext.prototype.getParameter;
+    WebGLRenderingContext.prototype.getParameter = function(parameter) {
+      if (parameter === 37445) {
+        return 'Intel Inc.';
+      }
+      if (parameter === 37446) {
+        return 'Intel(R) Iris(TM) Graphics 6100';
+      }
+      return getParameter(parameter);
+    };
+
+    // Override toString methods
+    WebGLRenderingContext.prototype.getParameter.toString = () => 'function getParameter() { [native code] }';
+    
+    // Mock hardware concurrency
+    Object.defineProperty(navigator, 'hardwareConcurrency', {
+      get: () => 4
+    });
+
+    // Mock device memory
+    Object.defineProperty(navigator, 'deviceMemory', {
+      get: () => 8
+    });
+
+    // Add connection info
+    Object.defineProperty(navigator, 'connection', {
+      get: () => ({
+        effectiveType: '4g',
+        rtt: 50,
+        downlink: 10
+      })
+    });
   });
 
-  // network + console capture (kept, but not written to disk)
+  // Network and console monitoring
   const network_requests = [];
   const console_logs = [];
+  
   page.on("request", (req) =>
     network_requests.push({
       url: req.url(),
       method: req.method(),
       type: req.resourceType(),
+      timestamp: Date.now()
     })
   );
+  
   page.on("console", (msg) =>
     console_logs.push({
       type: msg.type(),
       text: msg.text(),
+      timestamp: Date.now()
     })
   );
 
   try {
     console.log(`🌐 Navigating to ${url}`);
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForTimeout(3000);
+    
+    // Navigate with longer timeout for Cloudflare challenges
+    await page.goto(url, { 
+      waitUntil: "domcontentloaded", 
+      timeout: 60000 
+    });
+    
+    // Wait for Cloudflare challenges to complete
+    await page.waitForTimeout(5000);
+    
+    // Check for Cloudflare CAPTCHA challenges
+    const captchaDetected = await detectCaptcha(page);
+    
+    if (captchaDetected.found) {
+      console.log(`🚨 CAPTCHA detected: ${captchaDetected.type}`);
+      
+      if (captchaSolver && captchaDetected.type !== 'unknown') {
+        console.log('🤖 Attempting to solve CAPTCHA...');
+        const solved = await solveCaptcha(page, captchaDetected.type, captchaSolver);
+        
+        if (solved) {
+          console.log('✅ CAPTCHA solved successfully');
+          await page.waitForTimeout(3000); // Wait for page to reload after solving
+        } else {
+          console.log('❌ CAPTCHA solving failed');
+          throw new Error('CAPTCHA could not be solved');
+        }
+      } else {
+        throw new Error(`CAPTCHA detected but no solver provided. Type: ${captchaDetected.type}`);
+      }
+    }
 
-    // Extract property cards
+    // Additional wait for dynamic content
+    await page.waitForTimeout(2000);
+
+    // Extract property cards with enhanced error handling
     const property_cards = await page.evaluate((ptype) => {
       const container = document.querySelector("div.postingsList-module__postings-container");
-      if (!container) return [];
+      if (!container) {
+        console.log('Property container not found');
+        return [];
+      }
 
       const toNumber = (s) => {
         if (!s) return null;
@@ -159,116 +328,248 @@ async function captureWithPlaywright(url, { propertyType = null, headless = fals
         const m = cleaned.match(/\d+(?:\.\d+)?/);
         return m ? parseFloat(m[0]) : null;
       };
+
       const firstNumber = (s) => {
         if (!s) return null;
         const m = s.replace(/,/g, "").match(/\d+(?:\.\d+)?/);
         return m ? parseFloat(m[0]) : null;
       };
 
-      return Array.from(container.children).map((card) => {
-        const sub = card.querySelector("[data-id][data-to-posting]");
-        const data_id = sub ? sub.getAttribute("data-id") : null;
-        const url = sub ? sub.getAttribute("data-to-posting") || null : null;
+      return Array.from(container.children).map((card, index) => {
+        try {
+          const sub = card.querySelector("[data-id][data-to-posting]");
+          const data_id = sub ? sub.getAttribute("data-id") : null;
+          const url = sub ? sub.getAttribute("data-to-posting") || null : null;
 
-        const priceEl = card.querySelector('div.postingPrices-module__price[data-qa="POSTING_CARD_PRICE"]');
-        let precio = null,
-          moneda = null;
-        if (priceEl) {
-          const raw = priceEl.innerText.trim();
-          moneda = /USD/i.test(raw) ? "USD" : "MN";
-          precio = toNumber(raw);
+          const priceEl = card.querySelector('div.postingPrices-module__price[data-qa="POSTING_CARD_PRICE"]');
+          let precio = null, moneda = null;
+          if (priceEl) {
+            const raw = priceEl.innerText.trim();
+            moneda = /USD/i.test(raw) ? "USD" : "MN";
+            precio = toNumber(raw);
+          }
+
+          const locEl = card.querySelector(
+            'h2.postingLocations-module__location-text[data-qa="POSTING_CARD_LOCATION"]'
+          );
+          let zona = null;
+          if (locEl) {
+            const parts = locEl.innerText.split(",");
+            if (parts.length > 1) zona = parts[1].trim();
+          }
+
+          const addrEl = card.querySelector("div.postingLocations-module__location-address");
+          let direccion = null, codigo_postal = null;
+          if (addrEl) {
+            const t = addrEl.innerText.trim();
+            direccion = t;
+            const cp = t.match(/\b\d{5}\b/);
+            if (cp) codigo_postal = cp[0];
+          }
+
+          let tamano_lote = null, recamaras = null, banos = null, estacionamientos = null;
+          const featuresEl = card.querySelector('h3[data-qa="POSTING_CARD_FEATURES"]');
+          if (featuresEl) {
+            featuresEl.querySelectorAll("span").forEach((span) => {
+              const txt = (span.innerText || "").trim().toLowerCase();
+              if (/(m²|m2) lote$/.test(txt)) tamano_lote = firstNumber(txt);
+              if (/rec\.$/.test(txt)) recamaras = firstNumber(txt);
+              if (/baños?$/.test(txt)) banos = firstNumber(txt);
+              if (/estac\.$/.test(txt)) estacionamientos = firstNumber(txt);
+            });
+          }
+
+          const descEl = card.querySelector("h3.postingCard-module__posting-description a");
+          const descripcion = descEl ? descEl.innerText.trim() : null;
+
+          const sellerImg = card.querySelector(
+            "div.postingPublisher-module__container-logo-publisher img"
+          );
+          const url_vendedor = sellerImg ? sellerImg.getAttribute("src") : null;
+
+          return {
+            data_id,
+            url,
+            precio,
+            moneda,
+            zona,
+            direccion,
+            codigo_postal,
+            tamano_lote,
+            recamaras,
+            banos,
+            estacionamientos,
+            descripcion,
+            url_vendedor,
+            tipo_inmueble: ptype || null,
+            scrape_index: index
+          };
+        } catch (error) {
+          console.log(`Error processing card ${index}:`, error.message);
+          return null;
         }
-
-        const locEl = card.querySelector(
-          'h2.postingLocations-module__location-text[data-qa="POSTING_CARD_LOCATION"]'
-        );
-        let zona = null;
-        if (locEl) {
-          const parts = locEl.innerText.split(",");
-          if (parts.length > 1) zona = parts[1].trim();
-        }
-
-        const addrEl = card.querySelector("div.postingLocations-module__location-address");
-        let direccion = null,
-          codigo_postal = null;
-        if (addrEl) {
-          const t = addrEl.innerText.trim();
-          direccion = t;
-          const cp = t.match(/\b\d{5}\b/);
-          if (cp) codigo_postal = cp[0];
-        }
-
-        let tamano_lote = null,
-          recamaras = null,
-          banos = null,
-          estacionamientos = null;
-        const featuresEl = card.querySelector('h3[data-qa="POSTING_CARD_FEATURES"]');
-        if (featuresEl) {
-          featuresEl.querySelectorAll("span").forEach((span) => {
-            const txt = (span.innerText || "").trim().toLowerCase();
-            if (/(m²|m2) lote$/.test(txt)) tamano_lote = firstNumber(txt);
-            if (/rec\.$/.test(txt)) recamaras = firstNumber(txt);
-            if (/baños?$/.test(txt)) banos = firstNumber(txt);
-            if (/estac\.$/.test(txt)) estacionamientos = firstNumber(txt);
-          });
-        }
-
-        const descEl = card.querySelector("h3.postingCard-module__posting-description a");
-        const descripcion = descEl ? descEl.innerText.trim() : null;
-
-        const sellerImg = card.querySelector(
-          "div.postingPublisher-module__container-logo-publisher img"
-        );
-        const url_vendedor = sellerImg ? sellerImg.getAttribute("src") : null;
-
-        return {
-          data_id,
-          url,
-          precio,
-          moneda,
-          zona,
-          direccion,
-          codigo_postal,
-          tamano_lote,
-          recamaras,
-          banos,
-          estacionamientos,
-          descripcion,
-          url_vendedor,
-          tipo_inmueble: ptype || null,
-        };
-      });
+      }).filter(card => card !== null);
     }, propertyType);
 
-    // page metrics (simple)
+    // Enhanced page metrics
     const metrics = await page.evaluate(() => ({
       totalElements: document.getElementsByTagName("*").length,
       totalImages: document.images.length,
       totalLinks: document.links.length,
       totalScripts: document.scripts.length,
       bodyText: document.body.innerText.substring(0, 1000),
+      loadTime: performance.timing.loadEventEnd - performance.timing.navigationStart,
+      domReady: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart,
+      pageHeight: document.body.scrollHeight,
+      viewportHeight: window.innerHeight
     }));
 
     const content = await page.content();
-
-    // screenshot if you want it
-    // const screenshot = await page.screenshot({ fullPage: true });
+    
+    // Save cookies for session persistence
+    const cookies = await context.cookies();
 
     return {
       title: await page.title(),
       url: page.url(),
       content,
-      screenshots: {}, // { full: screenshot }  // disabled to keep files small
+      screenshots: {},
       prices: {},
       network_requests,
       console_logs,
       property_cards,
       metrics,
+      cookies, // Include cookies for session management
+      captcha_encountered: captchaDetected.found,
+      success: true
+    };
+
+  } catch (error) {
+    console.error(`❌ Error during capture: ${error.message}`);
+    return {
+      success: false,
+      error: error.message,
+      url,
+      property_cards: [],
+      metrics: {}
     };
   } finally {
-    await browser.close();
+    if (userDataDir) {
+      // For persistent context, just close the context
+      await context.close();
+    } else {
+      // For regular browser, close the browser
+      await browser.close();
+    }
   }
 }
+
+// Helper function to detect various CAPTCHA types
+async function detectCaptcha(page) {
+  try {
+    // Check for Cloudflare challenge patterns
+    const cfChallenge = await page.$('div.cf-browser-verification, div.cf-challenge, div.cf-wrapper');
+    if (cfChallenge) {
+      return { found: true, type: 'cloudflare', element: cfChallenge };
+    }
+
+    // Check for hCaptcha
+    const hCaptcha = await page.$('iframe[src*="hcaptcha"], div[class*="hcaptcha"]');
+    if (hCaptcha) {
+      return { found: true, type: 'hcaptcha', element: hCaptcha };
+    }
+
+    // Check for reCAPTCHA
+    const recaptcha = await page.$('iframe[src*="recaptcha"], div[class*="recaptcha"], div.g-recaptcha');
+    if (recaptcha) {
+      return { found: true, type: 'recaptcha', element: recaptcha };
+    }
+
+    // Check for Turnstile
+    const turnstile = await page.$('iframe[src*="turnstile"], div[class*="turnstile"]');
+    if (turnstile) {
+      return { found: true, type: 'turnstile', element: turnstile };
+    }
+
+    // Generic CAPTCHA iframe detection
+    const captchaIframe = await page.$('iframe[src*="captcha"]');
+    if (captchaIframe) {
+      return { found: true, type: 'unknown', element: captchaIframe };
+    }
+
+    return { found: false, type: null, element: null };
+  } catch (error) {
+    console.log('Error detecting CAPTCHA:', error.message);
+    return { found: false, type: null, element: null };
+  }
+}
+
+// Placeholder CAPTCHA solver - integrate with 2Captcha, CapMonster, etc.
+async function solveCaptcha(page, captchaType, solver) {
+  // This is a placeholder - you would integrate with actual CAPTCHA solving services
+  console.log(`Attempting to solve ${captchaType} CAPTCHA with solver: ${solver}`);
+  
+  if (captchaType === 'cloudflare') {
+    // For simple Cloudflare "verify you are human" challenges
+    try {
+      const verifyButton = await page.$('input[type="button"][value*="Verify"], button:has-text("Verify")');
+      if (verifyButton) {
+        await verifyButton.click();
+        await page.waitForTimeout(3000);
+        return true;
+      }
+    } catch (error) {
+      console.log('Error solving Cloudflare challenge:', error.message);
+    }
+  }
+  
+  // For hCaptcha/reCAPTCHA, you would integrate with services like:
+  // - 2Captcha API
+  // - CapMonster
+  // - AntiCaptcha
+  // Example integration would go here
+  
+  return false;
+}
+
+// Usage example with proxy rotation and session persistence
+async function scrapeWithProxyRotation(urls, proxies) {
+  const results = [];
+  const sessionDir = './browser-sessions';
+  
+  for (let i = 0; i < urls.length; i++) {
+    const url = urls[i];
+    const proxy = proxies[i % proxies.length]; // Rotate proxies
+    
+    try {
+      const result = await captureWithPlaywrightEnhanced(url, {
+        propertyType: 'casa',
+        headless: false, // Use headed mode for better stealth
+        proxy: proxy,
+        userDataDir: `${sessionDir}/session-${i % 3}`, // Reuse 3 different sessions
+        captchaSolver: '2captcha' // Your CAPTCHA solver
+      });
+      
+      results.push(result);
+      
+      // Add delay between requests to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 2000 + Math.random() * 3000));
+      
+    } catch (error) {
+      console.error(`Failed to scrape ${url}:`, error.message);
+      results.push({ url, success: false, error: error.message });
+    }
+  }
+  
+  return results;
+}
+
+module.exports = {
+  captureWithPlaywrightEnhanced,
+  scrapeWithProxyRotation,
+  detectCaptcha,
+  solveCaptcha
+};
 
 // ---------- pagination & historical ----------
 async function runPlaywrightHistorical(url, { propertyType = null, n = null, headless = false } = {}) {
