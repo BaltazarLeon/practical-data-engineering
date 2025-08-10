@@ -2,6 +2,9 @@
 Independent debug script for Inmuebles24 scraper
 Based on the original scraping logic but adapted for inmuebles24.com
 """
+from pathlib import Path
+from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright
 import pandas as pd
 import math
 import asyncio
@@ -13,6 +16,7 @@ import re
 from bs4 import BeautifulSoup
 from typing import Dict, List, Any
 
+STATE_PATH = Path("cf_storage_state.json")
 
 # Function to merge multiple run data dictionaries
 # This is useful for combining results from multiple runs of the scraper
@@ -115,9 +119,16 @@ async def run_playwright_historical(url: str,property_type=None ,n: int = None, 
 
 
 #Original Function to capture data using Playwright, no CLoudflare bypass
-# Function to Capture Data using Playwright I think I need to separate this more into models
-async def Originalcapture_with_playwright(url, property_type=None, headless=False):
-    #Capture the page using Playwright (real browser rendering)
+
+
+# Function to capture data using Playwright, with Cloudflare bypass
+
+# Function to Capture Data using Playwright (with persisted session)
+async def capture_with_playwright(url, property_type=None, headless=False, persist_session=True, wait_for_human=False):
+    """Capture the page using Playwright (real browser rendering).
+       - First run: set headless=False and wait_for_human=True so you can solve any interstitial manually.
+       - Later runs: headless=True is fine; your validated cookies are reused if persist_session=True.
+    """
     async with async_playwright() as p:
         # Launch browser
         browser = await p.chromium.launch(
@@ -125,62 +136,74 @@ async def Originalcapture_with_playwright(url, property_type=None, headless=Fals
             args=['--disable-blink-features=AutomationControlled']
         )
         
+        # Try to reuse saved storage_state (cookies/localStorage) if present
+        storage_state_arg = str(STATE_PATH) if (persist_session and STATE_PATH.exists()) else None
+
         # Create context with realistic viewport and user agent
         context = await browser.new_context(
             viewport={'width': 1920, 'height': 1080},
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
-            locale='en-US'
+            user_agent=('Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
+                        'AppleWebKit/537.36 (KHTML, like Gecko) '
+                        'Chrome/126.0.0.0 Safari/537.36'),
+            locale='en-US',
+            storage_state=storage_state_arg
         )
         
         # Create page
         page = await context.new_page()
 
-        
-        # Navigate and wait for content
-        print(f"🌐 Navigating to {url}")
-        await page.goto(url)
-        await page.wait_for_timeout(3000)  # let initial content load a bit
-
-        """
-        # Wait for cookies banner and try to accept it
-        try:
-            print("🔔 Waiting for cookie banner...")
-            await page.wait_for_selector('button#onetrust-accept-btn-handler', timeout=5000)
-            await page.click('button#onetrust-accept-btn-handler')
-            print("✅ Cookie banner accepted")
-            await page.wait_for_timeout(1000)  # wait a bit after acceptance
-        except Exception as e:
-            print("⚠️ No cookie banner found or already accepted")
-        """
-        
-        # Wait a bit more for any lazy-loaded content
-        await page.wait_for_timeout(1000)
-        
-        # Capture various data
+        # (Optional) attach listeners before navigation if you want to capture everything
         results = {
-            'title': await page.title(),
-            'url': page.url,
-            'content': await page.content(),
+            'title': None,
+            'url': None,
+            'content': None,
             'screenshots': {},
             'prices': {},
             'network_requests': [],
             'console_logs': []
         }
-        
+        page.on('request', lambda request: results['network_requests'].append({
+            'url': request.url,
+            'method': request.method,
+            'type': request.resource_type
+        }))
+        page.on('console', lambda msg: results['console_logs'].append({
+            'type': msg.type,
+            'text': msg.text
+        }))
+
+        # Navigate and wait for content
+        print(f"🌐 Navigating to {url}")
+        await page.goto(url, wait_until="domcontentloaded")
+
+        # If you're doing the FIRST run headful to pass any interstitial/challenge manually,
+        # set wait_for_human=True; we give you up to 2 minutes to complete it.
+        if wait_for_human:
+            print("⏳ Waiting for you to complete any on-page checks (up to 120s)…")
+            try:
+                await page.wait_for_load_state("networkidle", timeout=120_000)
+            except:
+                pass  # continue even if it never reaches network idle
+
+        # Small extra settle time for lazy content
+        await page.wait_for_timeout(1000)
+
+        # Collect basic page data
+        results['title'] = await page.title()
+        results['url'] = page.url
+        results['content'] = await page.content()
+
         # NOTE: pass `property_type` into evaluate and assign to tipo_inmueble
         property_cards = await page.evaluate('''(ptype) => {
         const container = document.querySelector('div.postingsList-module__postings-container');
         if (!container) return [];
 
-        // numbers: drop commas (thousands), keep dot as decimal if present
         const toNumber = (s) => {
             if (!s) return null;
             const cleaned = s.replace(/,/g, '');
             const m = cleaned.match(/\\d+(?:\\.\\d+)?/);
             return m ? parseFloat(m[0]) : null;
         };
-
-        // get FIRST number only (handles "2 a 4", "50 – 100", etc.)
         const firstNumber = (s) => {
             if (!s) return null;
             const m = s.replace(/,/g, '').match(/\\d+(?:\\.\\d+)?/);
@@ -188,122 +211,78 @@ async def Originalcapture_with_playwright(url, property_type=None, headless=Fals
         };
 
         return Array.from(container.children).map((card) => {
-            // Core link & ID
             const sub = card.querySelector('[data-id][data-to-posting]');
             const data_id = sub ? sub.getAttribute('data-id') : null;
             const url     = sub ? sub.getAttribute('data-to-posting') || null : null;
 
-            // Precio + Moneda (same selector)
             const priceEl = card.querySelector('div.postingPrices-module__price[data-qa="POSTING_CARD_PRICE"]');
             let precio = null, moneda = null;
             if (priceEl) {
-            const raw = priceEl.innerText.trim();
-            moneda = /USD/i.test(raw) ? 'USD' : 'MN';
-            precio = toNumber(raw); // commas removed -> numeric value
+              const raw = priceEl.innerText.trim();
+              moneda = /USD/i.test(raw) ? 'USD' : 'MN';
+              precio = toNumber(raw);
             }
 
-            // Zona: text AFTER the comma from location h2
             const locEl = card.querySelector('h2.postingLocations-module__location-text[data-qa="POSTING_CARD_LOCATION"]');
             let zona = null;
             if (locEl) {
-            const parts = locEl.innerText.split(',');
-            if (parts.length > 1) zona = parts[1].trim();
+              const parts = locEl.innerText.split(',');
+              if (parts.length > 1) zona = parts[1].trim();
             }
 
-            // Dirección + Código postal (5 digits inside address div)
             const addrEl = card.querySelector('div.postingLocations-module__location-address');
             let direccion = null, codigo_postal = null;
             if (addrEl) {
-            const t = addrEl.innerText.trim();
-            direccion = t;
-            const cp = t.match(/\\b\\d{5}\\b/);
-            if (cp) codigo_postal = cp[0];
+              const t = addrEl.innerText.trim();
+              direccion = t;
+              const cp = t.match(/\\b\\d{5}\\b/);
+              if (cp) codigo_postal = cp[0];
             }
 
-            // Features: tamaño lote, recámaras, baños, estacionamientos
             let tamano_lote = null, recamaras = null, banos = null, estacionamientos = null;
             const featuresEl = card.querySelector('h3[data-qa="POSTING_CARD_FEATURES"]');
             if (featuresEl) {
-            featuresEl.querySelectorAll('span').forEach(span => {
+              featuresEl.querySelectorAll('span').forEach(span => {
                 const txt = (span.innerText || '').trim().toLowerCase();
-
-                // tamaño lote: must end with "m² lote"
-                if (/(m²|m2) lote$/.test(txt)) {
-                tamano_lote = firstNumber(txt);
-                }
-
-                // recámaras: must end with "rec."
-                if (/rec\\.$/.test(txt)) {
-                recamaras = firstNumber(txt);
-                }
-
-                // baños: must end with "baños" or "baño"
-                if (/baños?$/.test(txt)) {
-                banos = firstNumber(txt);
-                }
-
-                // estacionamientos: must end with "estac."
-                if (/estac\\.$/.test(txt)) {
-                estacionamientos = firstNumber(txt);
-                }
-            });
+                if (/(m²|m2) lote$/.test(txt)) tamano_lote = firstNumber(txt);
+                if (/rec\\.$/.test(txt)) recamaras = firstNumber(txt);
+                if (/baños?$/.test(txt)) banos = firstNumber(txt);
+                if (/estac\\.$/.test(txt)) estacionamientos = firstNumber(txt);
+              });
             }
 
-            // Descripción
             const descEl = card.querySelector('h3.postingCard-module__posting-description a');
             const descripcion = descEl ? descEl.innerText.trim() : null;
 
-            // URL vendedor (logo src)
             const sellerImg = card.querySelector('div.postingPublisher-module__container-logo-publisher img');
             const url_vendedor = sellerImg ? sellerImg.getAttribute('src') : null;
 
-            // Tipo de inmueble (manual later)
-            const tipo_inmueble = null;
-
             return {
-            data_id,
-            url,
-            precio,
-            moneda,
-            zona,
-            direccion,
-            codigo_postal,
-            tamano_lote,
-            recamaras,
-            banos,
-            estacionamientos,
-            descripcion,
-            url_vendedor,
-            tipo_inmueble: ptype || null   // <- here
+              data_id,
+              url,
+              precio,
+              moneda,
+              zona,
+              direccion,
+              codigo_postal,
+              tamano_lote,
+              recamaras,
+              banos,
+              estacionamientos,
+              descripcion,
+              url_vendedor,
+              tipo_inmueble: ptype || null
             };
         });
         }''', property_type)
 
         results['property_cards'] = property_cards
 
-
-        # Capture screenshots
+        # Screenshot
         results['screenshots']['full'] = await page.screenshot(full_page=True)
-        
-  
-        # Capture network activity
-        page.on('request', lambda request: results['network_requests'].append({
-            'url': request.url,
-            'method': request.method,
-            'type': request.resource_type
-        }))
-        
-        # Capture console logs
-        page.on('console', lambda msg: results['console_logs'].append({
-            'type': msg.type,
-            'text': msg.text
-        }))
-        
-        # Scroll to load any lazy content
+
+        # Scroll to load any lazy content and collect metrics
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-        #await page.wait_for_timeout(1000)
-        
-        # Get final page metrics
         metrics = await page.evaluate('''() => ({
             totalElements: document.getElementsByTagName('*').length,
             totalImages: document.images.length,
@@ -312,423 +291,12 @@ async def Originalcapture_with_playwright(url, property_type=None, headless=Fals
             bodyText: document.body.innerText.substring(0, 1000)
         })''')
         results['metrics'] = metrics
+
+        # Save storage_state for future runs (so you can go headless later)
+        if persist_session:
+            await context.storage_state(path=str(STATE_PATH))
         
         await browser.close()
-        
-        return results
-
-# Function to capture data using Playwright, with Cloudflare bypass
-async def capture_with_playwright(url, property_type=None, headless=False):
-    """Capture the page using Playwright with Cloudflare bypass techniques"""
-    async with async_playwright() as p:
-        # Launch browser with stealth settings
-        browser = await p.chromium.launch(
-            headless=headless,
-            args=[
-                '--disable-blink-features=AutomationControlled',
-                '--disable-web-security',
-                '--disable-features=VizDisplayCompositor',
-                '--disable-extensions',
-                '--disable-plugins',
-                '--disable-plugins-discovery',
-                '--disable-background-timer-throttling',
-                '--disable-backgrounding-occluded-windows',
-                '--disable-renderer-backgrounding',
-                '--disable-field-trial-config',
-                '--disable-back-forward-cache',
-                '--disable-ipc-flooding-protection',
-                '--no-first-run',
-                '--no-service-autorun',
-                '--password-store=basic',
-                '--use-mock-keychain',
-                '--disable-dev-shm-usage',
-                '--no-sandbox'
-            ]
-        )
-        
-        # Create context with more realistic settings
-        context = await browser.new_context(
-            viewport={'width': 1366, 'height': 768},  # Common resolution
-            user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            locale='en-US',
-            timezone_id='America/New_York',
-            permissions=['geolocation'],
-            extra_http_headers={
-                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-                'Accept-Language': 'en-US,en;q=0.5',
-                'Accept-Encoding': 'gzip, deflate, br',
-                'DNT': '1',
-                'Connection': 'keep-alive',
-                'Upgrade-Insecure-Requests': '1',
-                'Sec-Fetch-Dest': 'document',
-                'Sec-Fetch-Mode': 'navigate',
-                'Sec-Fetch-Site': 'none',
-                'Cache-Control': 'max-age=0'
-            }
-        )
-        
-        # Create page and add stealth scripts
-        page = await context.new_page()
-        
-        # Remove webdriver traces
-        await page.add_init_script("""
-            Object.defineProperty(navigator, 'webdriver', {
-                get: () => undefined,
-            });
-            
-            // Remove automation indicators
-            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
-            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
-            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
-            
-            // Mock plugins and mimeTypes
-            Object.defineProperty(navigator, 'plugins', {
-                get: () => [
-                    {
-                        0: {type: "application/x-google-chrome-pdf", suffixes: "pdf", description: "Portable Document Format"},
-                        description: "Portable Document Format",
-                        filename: "internal-pdf-viewer",
-                        length: 1,
-                        name: "Chrome PDF Plugin"
-                    }
-                ],
-            });
-            
-            Object.defineProperty(navigator, 'languages', {
-                get: () => ['en-US', 'en'],
-            });
-            
-            // Mock chrome object
-            Object.defineProperty(window, 'chrome', {
-                get: () => ({
-                    runtime: {},
-                }),
-            });
-            
-            // Mock permissions
-            const originalQuery = window.navigator.permissions.query;
-            window.navigator.permissions.query = (parameters) => (
-                parameters.name === 'notifications' ?
-                    Promise.resolve({ state: Notification.permission }) :
-                    originalQuery(parameters)
-            );
-        """)
-        
-        # Navigate with random delay to simulate human behavior
-        print(f"🌐 Navigating to {url}")
-        
-        # Add random delay before navigation
-        import random
-        await asyncio.sleep(random.uniform(1, 3))
-        
-        try:
-            await page.goto(url, wait_until='domcontentloaded', timeout=30000)
-            await page.wait_for_timeout(random.randint(2000, 5000))
-            
-            # Check for Cloudflare challenge
-            cloudflare_selectors = [
-                'input[type="checkbox"][id*="challenge"]',
-                '.cf-challenge-form',
-                '#challenge-form',
-                '.challenge-form',
-                'input[name="cf_captcha_kind"]',
-                '.cf-wrapper',
-                '[data-ray]'
-            ]
-            
-            cloudflare_detected = False
-            for selector in cloudflare_selectors:
-                if await page.locator(selector).count() > 0:
-                    cloudflare_detected = True
-                    print(f"🛡️ Cloudflare challenge detected: {selector}")
-                    break
-            
-            if cloudflare_detected:
-                print("🤖 Attempting to solve Cloudflare challenge...")
-                
-                # Wait for the challenge to fully load
-                await page.wait_for_timeout(5000)
-                
-                # Method 1: Try to handle Turnstile iframe
-                turnstile_handled = False
-                try:
-                    # Look for Turnstile iframe
-                    turnstile_iframe = page.frame_locator('iframe[src*="challenges.cloudflare.com"]').first
-                    if await page.locator('iframe[src*="challenges.cloudflare.com"]').count() > 0:
-                        print("🔍 Found Turnstile iframe")
-                        
-                        # Wait for iframe to load and find checkbox inside
-                        await page.wait_for_timeout(3000)
-                        
-                        # Try to click inside the iframe
-                        iframe_checkbox = turnstile_iframe.locator('input[type="checkbox"]').first
-                        if await iframe_checkbox.count() > 0:
-                            print("📋 Found checkbox in Turnstile iframe")
-                            await iframe_checkbox.scroll_into_view_if_needed()
-                            await page.wait_for_timeout(random.randint(1000, 2000))
-                            await iframe_checkbox.click()
-                            turnstile_handled = True
-                            print("✅ Turnstile checkbox clicked!")
-                        else:
-                            # Sometimes we need to click the iframe area itself
-                            print("🎯 Trying to click iframe area")
-                            iframe_element = page.locator('iframe[src*="challenges.cloudflare.com"]').first
-                            await iframe_element.click()
-                            turnstile_handled = True
-                            print("✅ Iframe area clicked!")
-                            
-                except Exception as e:
-                    print(f"⚠️ Turnstile iframe handling failed: {e}")
-                
-                # Method 2: Try direct selectors if Turnstile didn't work
-                if not turnstile_handled:
-                    checkbox_selectors = [
-                        'input[type="checkbox"]',
-                        'input[id*="challenge"]',
-                        '.cf-turnstile',
-                        '[data-sitekey]',  # Turnstile widget
-                        '.challenge-form input',
-                        '#challenge-form input',
-                        'label[for*="challenge"]',
-                        '.cf-challenge-form input'
-                    ]
-                    
-                    checkbox_clicked = False
-                    for selector in checkbox_selectors:
-                        try:
-                            checkbox = page.locator(selector).first
-                            if await checkbox.count() > 0:
-                                print(f"📋 Found element: {selector}")
-                                
-                                # Simulate human-like interaction
-                                await checkbox.scroll_into_view_if_needed()
-                                await page.wait_for_timeout(random.randint(1000, 2000))
-                                
-                                # Move mouse to checkbox area with some randomness
-                                box = await checkbox.bounding_box()
-                                if box:
-                                    await page.mouse.move(
-                                        box['x'] + box['width']/2 + random.randint(-5, 5),
-                                        box['y'] + box['height']/2 + random.randint(-5, 5)
-                                    )
-                                    await page.wait_for_timeout(random.randint(100, 500))
-                                    
-                                    # Try both click and force click
-                                    try:
-                                        await checkbox.click()
-                                    except:
-                                        await checkbox.click(force=True)
-                                        
-                                    checkbox_clicked = True
-                                    print("✅ Element clicked!")
-                                    break
-                        except Exception as e:
-                            print(f"⚠️ Failed to click element with selector {selector}: {e}")
-                            continue
-                    
-                    turnstile_handled = checkbox_clicked
-                
-                if turnstile_handled:
-                    # Wait for challenge to process
-                    print("⏳ Waiting for Cloudflare challenge to process...")
-                    
-                    # Wait and check for page changes multiple times
-                    for i in range(6):  # Check 6 times over 30 seconds
-                        await page.wait_for_timeout(5000)
-                        current_url = page.url
-                        page_content = await page.content()
-                        
-                        # Check multiple indicators that challenge is solved
-                        if ('challenge' not in current_url.lower() and 
-                            'checking' not in page_content.lower() and
-                            'verify you are human' not in page_content.lower()):
-                            print("🎉 Challenge appears to be solved!")
-                            break
-                        else:
-                            print(f"⏳ Still processing... (attempt {i+1}/6)")
-                    
-                    # Final check
-                    final_content = await page.content()
-                    if 'challenge' in final_content.lower() or 'verify you are human' in final_content.lower():
-                        print("⚠️ Challenge may still be active, but continuing...")
-                    
-                else:
-                    print("❌ Could not find or click Cloudflare challenge element")
-                    print("🔍 Available elements on page:")
-                    # Debug: show what elements are available
-                    all_inputs = await page.locator('input').all()
-                    for i, inp in enumerate(all_inputs[:5]):  # Show first 5 inputs
-                        try:
-                            inp_type = await inp.get_attribute('type')
-                            inp_id = await inp.get_attribute('id')
-                            print(f"   Input {i}: type='{inp_type}', id='{inp_id}'")
-                        except:
-                            pass
-            
-            # Wait for the actual content to load
-            await page.wait_for_timeout(3000)
-            
-        except Exception as e:
-            print(f"❌ Navigation error: {e}")
-            await browser.close()
-            raise
-        
-        # Rest of your original code remains the same...
-        results = {
-            'title': await page.title(),
-            'url': page.url,
-            'content': await page.content(),
-            'screenshots': {},
-            'prices': {},
-            'network_requests': [],
-            'console_logs': []
-        }
-        
-        # Your existing property extraction code
-        property_cards = await page.evaluate('''(ptype) => {
-        const container = document.querySelector('div.postingsList-module__postings-container');
-        if (!container) return [];
-
-        // numbers: drop commas (thousands), keep dot as decimal if present
-        const toNumber = (s) => {
-            if (!s) return null;
-            const cleaned = s.replace(/,/g, '');
-            const m = cleaned.match(/\\d+(?:\\.\\d+)?/);
-            return m ? parseFloat(m[0]) : null;
-        };
-
-        // get FIRST number only (handles "2 a 4", "50 – 100", etc.)
-        const firstNumber = (s) => {
-            if (!s) return null;
-            const m = s.replace(/,/g, '').match(/\\d+(?:\\.\\d+)?/);
-            return m ? parseFloat(m[0]) : null;
-        };
-
-        return Array.from(container.children).map((card) => {
-            // Core link & ID
-            const sub = card.querySelector('[data-id][data-to-posting]');
-            const data_id = sub ? sub.getAttribute('data-id') : null;
-            const url     = sub ? sub.getAttribute('data-to-posting') || null : null;
-
-            // Precio + Moneda (same selector)
-            const priceEl = card.querySelector('div.postingPrices-module__price[data-qa="POSTING_CARD_PRICE"]');
-            let precio = null, moneda = null;
-            if (priceEl) {
-            const raw = priceEl.innerText.trim();
-            moneda = /USD/i.test(raw) ? 'USD' : 'MN';
-            precio = toNumber(raw); // commas removed -> numeric value
-            }
-
-            // Zona: text AFTER the comma from location h2
-            const locEl = card.querySelector('h2.postingLocations-module__location-text[data-qa="POSTING_CARD_LOCATION"]');
-            let zona = null;
-            if (locEl) {
-            const parts = locEl.innerText.split(',');
-            if (parts.length > 1) zona = parts[1].trim();
-            }
-
-            // Dirección + Código postal (5 digits inside address div)
-            const addrEl = card.querySelector('div.postingLocations-module__location-address');
-            let direccion = null, codigo_postal = null;
-            if (addrEl) {
-            const t = addrEl.innerText.trim();
-            direccion = t;
-            const cp = t.match(/\\b\\d{5}\\b/);
-            if (cp) codigo_postal = cp[0];
-            }
-
-            // Features: tamaño lote, recámaras, baños, estacionamientos
-            let tamano_lote = null, recamaras = null, banos = null, estacionamientos = null;
-            const featuresEl = card.querySelector('h3[data-qa="POSTING_CARD_FEATURES"]');
-            if (featuresEl) {
-            featuresEl.querySelectorAll('span').forEach(span => {
-                const txt = (span.innerText || '').trim().toLowerCase();
-
-                // tamaño lote: must end with "m² lote"
-                if (/(m²|m2) lote$/.test(txt)) {
-                tamano_lote = firstNumber(txt);
-                }
-
-                // recámaras: must end with "rec."
-                if (/rec\\.$/.test(txt)) {
-                recamaras = firstNumber(txt);
-                }
-
-                // baños: must end with "baños" or "baño"
-                if (/baños?$/.test(txt)) {
-                banos = firstNumber(txt);
-                }
-
-                // estacionamientos: must end with "estac."
-                if (/estac\\.$/.test(txt)) {
-                estacionamientos = firstNumber(txt);
-                }
-            });
-            }
-
-            // Descripción
-            const descEl = card.querySelector('h3.postingCard-module__posting-description a');
-            const descripcion = descEl ? descEl.innerText.trim() : null;
-
-            // URL vendedor (logo src)
-            const sellerImg = card.querySelector('div.postingPublisher-module__container-logo-publisher img');
-            const url_vendedor = sellerImg ? sellerImg.getAttribute('src') : null;
-
-            // Tipo de inmueble (manual later)
-            const tipo_inmueble = null;
-
-            return {
-            data_id,
-            url,
-            precio,
-            moneda,
-            zona,
-            direccion,
-            codigo_postal,
-            tamano_lote,
-            recamaras,
-            banos,
-            estacionamientos,
-            descripcion,
-            url_vendedor,
-            tipo_inmueble: ptype || null   // <- here
-            };
-        });
-        }''', property_type)
-
-        results['property_cards'] = property_cards
-
-        # Capture screenshots
-        results['screenshots']['full'] = await page.screenshot(full_page=True)
-        
-        # Capture network activity
-        page.on('request', lambda request: results['network_requests'].append({
-            'url': request.url,
-            'method': request.method,
-            'type': request.resource_type
-        }))
-        
-        # Capture console logs
-        page.on('console', lambda msg: results['console_logs'].append({
-            'type': msg.type,
-            'text': msg.text
-        }))
-        
-        # Scroll to load any lazy content
-        await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-        
-        # Get final page metrics
-        metrics = await page.evaluate('''() => ({
-            totalElements: document.getElementsByTagName('*').length,
-            totalImages: document.images.length,
-            totalLinks: document.links.length,
-            totalScripts: document.scripts.length,
-            bodyText: document.body.innerText.substring(0, 1000)
-        })''')
-        results['metrics'] = metrics
-        
-        await browser.close()
-        
         return results
 
 def build_inmuebles24_url(base, slug, rent_or_buy, city):
