@@ -123,9 +123,9 @@ async def capture_with_playwright(url, property_type=None, headless=False):
         # Navigate and wait for content
         print(f"🌐 Navigating to {url}")
         await page.goto(url)
-        await page.wait_for_timeout(2000)  # let initial content load a bit
+        await page.wait_for_timeout(1000)  # let initial content load a bit
 
-        
+        """
         # Wait for cookies banner and try to accept it
         try:
             print("🔔 Waiting for cookie banner...")
@@ -135,10 +135,10 @@ async def capture_with_playwright(url, property_type=None, headless=False):
             await page.wait_for_timeout(1000)  # wait a bit after acceptance
         except Exception as e:
             print("⚠️ No cookie banner found or already accepted")
-
+        """
         
         # Wait a bit more for any lazy-loaded content
-        await page.wait_for_timeout(3000)
+        await page.wait_for_timeout(1000)
         
         # Capture various data
         results = {
@@ -351,7 +351,7 @@ async def capture_with_playwright(url, property_type=None, headless=False):
         
         # Scroll to load any lazy content
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-        await page.wait_for_timeout(2000)
+        await page.wait_for_timeout(1000)
         
         # Get final page metrics
         metrics = await page.evaluate('''() => ({
@@ -366,46 +366,6 @@ async def capture_with_playwright(url, property_type=None, headless=False):
         await browser.close()
         
         return results
-
-
-
-
-async def debug_inmuebles24_scraper():
-    """Debug the Inmuebles24 scraping logic step by step"""
-    
-    # Test configuration - adapted for inmuebles24
-    search_criteria = {
-        "rentOrBuy": "venta",
-        "city": "ciudad-de-mexico", 
-        "propertyType": "departamentos"
-    }
-    # Define property type slugs for inmuebles24
-    # These slugs are used to construct URLs for different property types
-    property_type_slugs = {
-        "Departamento": "departamentos",
-        "Casa": "casas",
-        "Terreno / Lote": "terrenos",
-        "Casa en condominio": "casa-en-condominio",
-        "Local comercial": "locales-comerciales",
-        "Bodega comercial": "bodegas-comerciales",
-        "Casa uso de suelo": "casa-uso-de-suelo",
-        "Departamento compartido": "departamento-compartido",
-        "Desarrollo horizontal": "desarrollo-horizontal",
-        "Desarrollo horizontal/vertical": "desarrollo-horizontal-vertical",
-        "Desarrollo vertical": "desarrollo-vertical",
-        "Dúplex": "duplex",
-        "Edificio": "edificio",
-        "Huerta": "huerta",
-        "Inmueble productivo urbano": "inmueble-productivo-urbano",
-        "Local en centro comercial": "local-en-centro-comercial",
-        "Nave industrial": "nave-industrial",
-        "Oficina": "oficinas",
-        "Quinta": "quinta",
-        "Rancho": "rancho",
-        "Terreno comercial": "terreno-comercial",
-        "Terreno industrial": "terreno-industrial",
-        "Villa": "villa"
-    }
 
 def build_inmuebles24_url(base, slug, rent_or_buy, city):
     return (
@@ -424,7 +384,7 @@ async def scrape_all_property_types(
     property_type_slugs: dict,
     headless: bool = False,
     csv_path: str = "backgroundtests/csv/property_cards_all.csv",
-    use_human_label_for_tipo: bool = False
+    use_human_label_for_tipo: bool = True
 ):
     """
     Loops all property_type_slugs, scrapes each type, merges all runs,
@@ -469,6 +429,43 @@ async def scrape_all_property_types(
 
     return merged, final_csv
 
+
+
+async def debug_inmuebles24_scraper():
+    """Debug the Inmuebles24 scraping logic step by step"""
+    
+    # Test configuration - adapted for inmuebles24
+    
+    # Define property type slugs for inmuebles24
+    # These slugs are used to construct URLs for different property types
+    property_type_slugs = {
+        "Departamento": "departamentos",
+        "Casa": "casas",
+        "Terreno / Lote": "terrenos",
+        "Casa en condominio": "casa-en-condominio",
+        "Local comercial": "locales-comerciales",
+        "Bodega comercial": "bodegas-comerciales",
+        "Casa uso de suelo": "casa-uso-de-suelo",
+        "Departamento compartido": "departamento-compartido",
+        "Desarrollo horizontal": "desarrollo-horizontal",
+        "Desarrollo horizontal/vertical": "desarrollo-horizontal-vertical",
+        "Desarrollo vertical": "desarrollo-vertical",
+        "Dúplex": "duplex",
+        "Edificio": "edificio",
+        "Huerta": "huerta",
+        "Inmueble productivo urbano": "inmueble-productivo-urbano",
+        "Local en centro comercial": "local-en-centro-comercial",
+        "Nave industrial": "nave-industrial",
+        "Oficina": "oficinas",
+        "Quinta": "quinta",
+        "Rancho": "rancho",
+        "Terreno comercial": "terreno-comercial",
+        "Terreno industrial": "terreno-industrial",
+        "Villa": "villa"
+    }
+
+
+
     # Base URL for inmuebles24
     inmuebles24_main_url = "https://www.inmuebles24.com/"
     
@@ -500,20 +497,7 @@ async def scrape_all_property_types(
     # Inmuebles24 URL pattern seems to be (FOR THE FIRST PAGE):
     # /{property-type}-en-{rentOrBuy}-en-{city}-mas-de-5-pesos.html
     
-    # Construct URL based on pattern
-    constructed_url = (
-        inmuebles24_main_url
-        + search_criteria["propertyType"]
-        + "-en-"
-        + search_criteria["rentOrBuy"]
-        + "-en-"
-        + search_criteria["city"]
-        + "-mas-de-5-pesos.html"
-    )
-    print(f"Constructed URL: {constructed_url}")
-    print(f"Working URL:     {working_url}")
-    print(f"URLs match: {constructed_url == working_url}")
-    
+
     """
     # Step 3: Find maximum pages (adapted for inmuebles24)
     print(f"\n📍 Step 3: Finding maximum pages")
@@ -563,16 +547,17 @@ async def scrape_all_property_types(
     try:
         
         
-        print("Playwright test:")
-        url = constructed_url
-        
-        # Then, get with Playwright
-        print("\n🎭 Getting with Playwright (real browser)...")
-        playwright_data = await run_playwright_historical(url,property_type=search_criteria['propertyType'], headless=False)
-        
-        df = pd.DataFrame(playwright_data['property_cards'])
-        df.to_csv("backgroundtests/csv/property_cards.csv", index=False, encoding="utf-8")
-        print(f"✅ Saved {len(df)} property cards to property_cards.csv")
+        merged_data, csv_file = await scrape_all_property_types(
+        base_url="https://www.inmuebles24.com/",
+        search_criteria={
+            "rentOrBuy": "venta",
+            "city": "ciudad-de-mexico"
+        },
+        property_type_slugs=property_type_slugs,
+        headless=False,
+        csv_path="backgroundtests/csv/property_cards_all.csv",
+        use_human_label_for_tipo=False  # puts "Departamento", "Casa", etc. into tipo_inmueble
+    )
 
 
         """
