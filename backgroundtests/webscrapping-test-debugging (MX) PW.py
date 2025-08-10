@@ -395,9 +395,10 @@ async def debug_inmuebles24_scraper():
         "Casa": "casas",
         "Terreno / Lote": "terrenos",
     }
-    """
+    
         # Original property_type_slugs for reference
     # Uncomment if needed for comparison
+    """
     property_type_slugs = {
         "Departamento": "departamentos",
         "Casa": "casas",
@@ -423,7 +424,7 @@ async def debug_inmuebles24_scraper():
         "Terreno industrial": "terreno-industrial",
         "Villa": "villa"
     }
-
+    
 
 
     # Base URL for inmuebles24
@@ -513,7 +514,7 @@ async def debug_inmuebles24_scraper():
             "rentOrBuy": "venta",
             "city": "ciudad-de-mexico"
         },  
-        page_limit=3,
+        page_limit=None,
         property_type_slugs=property_type_slugs,
         headless=False,
         csv_path="backgroundtests/csv/property_cards_all.csv",
