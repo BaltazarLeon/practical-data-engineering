@@ -183,3 +183,5 @@ backgroundtests/screenshots/
 backgroundtests/jsons-logs/
 backgroundtests/html/
 backgroundtests/csv/
+backgroundtests/session-profiles
+backgroundtests/backgroundtests/
