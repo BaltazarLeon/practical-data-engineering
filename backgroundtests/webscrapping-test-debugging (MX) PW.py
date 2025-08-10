@@ -34,6 +34,8 @@ def merge_playwright_data(run_data_list: list):
     for run_data in run_data_list:
         # Merge property cards
         merged_data['property_cards'].extend(run_data.get('property_cards', []))
+        
+        #Commented out screenshot merging for now, as it causing issues with multiple property types
         """
         # Merge screenshots (optional: just keep all, or only the first)
         merged_data['screenshots'].append(run_data['screenshots'].get('full'))
@@ -367,12 +369,15 @@ async def debug_inmuebles24_scraper():
     
     # Define property type slugs for inmuebles24
     # These slugs are used to construct URLs for different property types
+
+    """
     property_type_slugs = {
         "Departamento": "departamentos",
         "Casa": "casas",
         "Terreno / Lote": "terrenos",
     }
-    """    # Original property_type_slugs for reference
+    """
+        # Original property_type_slugs for reference
     # Uncomment if needed for comparison
     property_type_slugs = {
         "Departamento": "departamentos",
@@ -398,7 +403,7 @@ async def debug_inmuebles24_scraper():
         "Terreno comercial": "terreno-comercial",
         "Terreno industrial": "terreno-industrial",
         "Villa": "villa"
-    }"""
+    }
 
 
 
@@ -488,8 +493,8 @@ async def debug_inmuebles24_scraper():
         search_criteria={
             "rentOrBuy": "venta",
             "city": "ciudad-de-mexico"
-        },
-        page_limit=1,
+        },  
+        page_limit=3,
         property_type_slugs=property_type_slugs,
         headless=False,
         csv_path="backgroundtests/csv/property_cards_all.csv",
