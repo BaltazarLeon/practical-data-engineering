@@ -24,12 +24,6 @@ def merge_playwright_data(run_data_list: list):
     Returns a single merged dictionary.
     """
     merged_data = {
-        'prices': {
-            'visible_text': [],
-            'price_classes': [],
-            'span_prices': [],
-            'structured_data': []
-        },
         'property_cards': [],
         'screenshots': [],
         'network_requests': [],
@@ -270,73 +264,7 @@ async def capture_with_playwright(url, property_type=None, headless=False):
         # Capture screenshots
         results['screenshots']['full'] = await page.screenshot(full_page=True)
         
-        # Extract prices using multiple methods
-        # Method 1: Get all visible text containing MN
-        price_texts = await page.evaluate('''() => {
-            const prices = [];
-            const walker = document.createTreeWalker(
-                document.body,
-                NodeFilter.SHOW_TEXT,
-                null,
-                false
-            );
-
-            let node;
-            while (node = walker.nextNode()) {
-                const rawText = node.nodeValue || '';
-                const trimmedText = rawText.trim();
-
-                // Check if text contains MN or USD and is within a reasonable length
-                if ((trimmedText.includes('MN') || trimmedText.includes('USD')) && trimmedText.length > 0 && trimmedText.length < 200) {
-                    prices.push({
-                        text: trimmedText,
-                        parentClass: node.parentElement ? node.parentElement.className : '',
-                        parentTag: node.parentElement ? node.parentElement.tagName : '',
-                        currency: trimmedText.includes('MN') ? 'MN' : 'USD'
-                    });
-                }
-            }
-
-            return prices;
-        }''')
-        results['prices']['visible_text'] = price_texts
-        
-        # Method 2: Get all elements with price classes
-        price_elements = await page.evaluate('''() => {
-            const elements = document.querySelectorAll('[class*="price"], [class*="Price"], [class*="cost"], [class*="Cost"]');
-            return Array.from(elements).map(el => ({
-                text: el.innerText || el.textContent,
-                class: el.className,
-                tag: el.tagName
-            })).filter(el => el.text && el.text.includes('CHF'));
-        }''')
-        results['prices']['price_classes'] = price_elements
-        
-        # Method 3: Get specific price spans
-        specific_prices = await page.evaluate('''() => {
-            const divs = document.querySelectorAll('div.postingPrices-module__price[data-qa="POSTING_CARD_PRICE"]');
-            const prices = [];
-            divs.forEach(div => {
-                const text = div.innerText || div.textContent || '';
-                const trimmedText = text.trim();
-
-                // Match either MN or USD prices
-                const mnMatch = trimmedText.match(/MN\s*[\d,.]+/g);
-                const usdMatch = trimmedText.match(/USD\s*[\d,.]+/g);
-
-                if (mnMatch || usdMatch) {
-                    prices.push({
-                        text: trimmedText,
-                        class: div.className,
-                        currency: mnMatch ? 'MN' : 'USD',
-                        fullMatch: mnMatch || usdMatch
-                    });
-                }
-            });
-            return prices;
-        }''')
-        results['prices']['span_prices'] = specific_prices
- 
+  
         # Capture network activity
         page.on('request', lambda request: results['network_requests'].append({
             'url': request.url,
