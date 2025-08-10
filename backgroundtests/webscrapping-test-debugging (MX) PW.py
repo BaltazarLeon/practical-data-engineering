@@ -82,9 +82,10 @@ async def run_playwright_historical(url: str,property_type=None ,n: int = 3, hea
         lastPageNum = 1
         print("Could not extract total listings, defaulting lastPageNum to 1")
 
-
+    if lastPageNum > n:
+        lastPageNum = n  # Limit to 3 for testing purposes
     # Step 2: Loop for n cycles
-    for i in range(2, n + 1):
+    for i in range(2, lastPageNum + 1):
         # Insert -pagina-{i} before .html in the URL
         paged_url = url.replace('.html', f'-pagina-{i}.html')
         print(f"Step 2: Running capture {i} for {paged_url}")
