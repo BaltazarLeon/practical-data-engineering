@@ -379,7 +379,8 @@ async def debug_inmuebles24_scraper():
         "city": "ciudad-de-mexico", 
         "propertyType": "departamentos"
     }
-    
+    # Define property type slugs for inmuebles24
+    # These slugs are used to construct URLs for different property types
     property_type_slugs = {
         "Departamento": "departamentos",
         "Casa": "casas",
@@ -405,6 +406,68 @@ async def debug_inmuebles24_scraper():
         "Terreno industrial": "terreno-industrial",
         "Villa": "villa"
     }
+
+def build_inmuebles24_url(base, slug, rent_or_buy, city):
+    return (
+        base
+        + slug
+        + "-en-"
+        + rent_or_buy
+        + "-en-"
+        + city
+        + "-mas-de-5-pesos.html"
+    )
+
+async def scrape_all_property_types(
+    base_url: str,
+    search_criteria: dict,
+    property_type_slugs: dict,
+    headless: bool = False,
+    csv_path: str = "backgroundtests/csv/property_cards_all.csv",
+    use_human_label_for_tipo: bool = False
+):
+    """
+    Loops all property_type_slugs, scrapes each type, merges all runs,
+    and writes a single CSV.
+    """
+    all_runs = []
+
+    for human_label, slug in property_type_slugs.items():
+        url = build_inmuebles24_url(
+            base_url,
+            slug,
+            search_criteria["rentOrBuy"],
+            search_criteria["city"]
+        )
+        tipo_inmueble_value = human_label if use_human_label_for_tipo else slug
+        print(f"\n🎭 Scraping: {human_label} -> {url}")
+
+        data = await run_playwright_historical(
+            url,
+            property_type=tipo_inmueble_value,  # <- goes into tipo_inmueble field
+            headless=headless
+        )
+        all_runs.append(data)
+
+    # Merge everything
+    merged = merge_playwright_data(all_runs)
+
+    # Save CSV (property_cards only)
+    df = pd.DataFrame(merged.get('property_cards', []))
+    # ensure directory exists (optional)
+    try:
+        import os
+        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+    except Exception:
+        pass
+
+    # timestamped filename to avoid overwrites
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    final_csv = csv_path.replace(".csv", f"_{ts}.csv")
+    df.to_csv(final_csv, index=False, encoding="utf-8")
+    print(f"✅ Saved {len(df)} property cards (all types) to {final_csv}")
+
+    return merged, final_csv
 
     # Base URL for inmuebles24
     inmuebles24_main_url = "https://www.inmuebles24.com/"
