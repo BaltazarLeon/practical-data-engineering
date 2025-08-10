@@ -54,7 +54,7 @@ def merge_playwright_data(run_data_list: list):
     return merged_data
 
 # Function to run multiple cycles and merge results
-async def run_playwright_historical(url: str, n: int = 3, headless: bool = False):
+async def run_playwright_historical(url: str,property_type=None ,n: int = 3, headless: bool = False):
     """
     Executes capture_with_playwright for a URL, stores results in historicaldata,
     then runs n cycles, storing each result in rundata and merges into historicaldata.
@@ -63,7 +63,7 @@ async def run_playwright_historical(url: str, n: int = 3, headless: bool = False
 
     # Step 1: Initial run
     print(f"Step 1: Running initial capture for {url}")
-    initial_data = await capture_with_playwright(url, headless=headless)
+    initial_data = await capture_with_playwright(url,property_type=property_type, headless=headless)
     run_data_list.append(initial_data)
 
 
@@ -79,7 +79,7 @@ async def run_playwright_historical(url: str, n: int = 3, headless: bool = False
         print(f"Extracted total listings: {total_listings}")
         print(f"Calculated lastPageNum: {lastPageNum}")
     else:
-        lastPageNum = 1956
+        lastPageNum = 1
         print("Could not extract total listings, defaulting lastPageNum to 1")
 
 
@@ -88,7 +88,7 @@ async def run_playwright_historical(url: str, n: int = 3, headless: bool = False
         # Insert -pagina-{i} before .html in the URL
         paged_url = url.replace('.html', f'-pagina-{i}.html')
         print(f"Step 2: Running capture {i} for {paged_url}")
-        rundata = await capture_with_playwright(paged_url, headless=headless)
+        rundata = await capture_with_playwright(paged_url,property_type=property_type, headless=headless)
         run_data_list.append(rundata)
 
     # Merge all runs into historicaldata
@@ -100,7 +100,7 @@ async def run_playwright_historical(url: str, n: int = 3, headless: bool = False
 # You need to have merge_playwright_data defined as in previous examples.
 
 # Function to Capture Data using Playwright I think I need to separate this more into models
-async def capture_with_playwright(url, headless=False):
+async def capture_with_playwright(url, property_type=None, headless=False):
     """Capture the page using Playwright (real browser rendering)"""
     async with async_playwright() as p:
         # Launch browser
@@ -151,7 +151,8 @@ async def capture_with_playwright(url, headless=False):
             'console_logs': []
         }
         
-        property_cards = await page.evaluate('''() => {
+        # NOTE: pass `property_type` into evaluate and assign to tipo_inmueble
+        property_cards = await page.evaluate('''(ptype) => {
         const container = document.querySelector('div.postingsList-module__postings-container');
         if (!container) return [];
 
@@ -257,10 +258,10 @@ async def capture_with_playwright(url, headless=False):
             estacionamientos,
             descripcion,
             url_vendedor,
-            tipo_inmueble
+            tipo_inmueble: ptype || null   // <- here
             };
         });
-        }''')
+        }''', property_type)
 
         results['property_cards'] = property_cards
 
@@ -474,11 +475,11 @@ async def debug_inmuebles24_scraper():
         
         
         print("Playwright test:")
-        url = working_url
+        url = constructed_url
         
         # Then, get with Playwright
         print("\n🎭 Getting with Playwright (real browser)...")
-        playwright_data = await run_playwright_historical(url, headless=False)
+        playwright_data = await run_playwright_historical(url,property_type=search_criteria['propertyType'], headless=False)
         
         df = pd.DataFrame(playwright_data['property_cards'])
         df.to_csv("backgroundtests/csv/property_cards.csv", index=False, encoding="utf-8")
