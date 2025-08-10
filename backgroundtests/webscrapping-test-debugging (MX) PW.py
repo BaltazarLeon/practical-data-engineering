@@ -380,6 +380,32 @@ async def debug_inmuebles24_scraper():
         "propertyType": "departamentos"
     }
     
+    property_type_slugs = {
+        "Departamento": "departamentos",
+        "Casa": "casas",
+        "Terreno / Lote": "terrenos",
+        "Casa en condominio": "casa-en-condominio",
+        "Local comercial": "locales-comerciales",
+        "Bodega comercial": "bodegas-comerciales",
+        "Casa uso de suelo": "casa-uso-de-suelo",
+        "Departamento compartido": "departamento-compartido",
+        "Desarrollo horizontal": "desarrollo-horizontal",
+        "Desarrollo horizontal/vertical": "desarrollo-horizontal-vertical",
+        "Desarrollo vertical": "desarrollo-vertical",
+        "Dúplex": "duplex",
+        "Edificio": "edificio",
+        "Huerta": "huerta",
+        "Inmueble productivo urbano": "inmueble-productivo-urbano",
+        "Local en centro comercial": "local-en-centro-comercial",
+        "Nave industrial": "nave-industrial",
+        "Oficina": "oficinas",
+        "Quinta": "quinta",
+        "Rancho": "rancho",
+        "Terreno comercial": "terreno-comercial",
+        "Terreno industrial": "terreno-industrial",
+        "Villa": "villa"
+    }
+
     # Base URL for inmuebles24
     inmuebles24_main_url = "https://www.inmuebles24.com/"
     
