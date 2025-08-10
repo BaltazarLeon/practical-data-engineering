@@ -479,42 +479,7 @@ async def debug_inmuebles24_scraper():
         # Then, get with Playwright
         print("\n🎭 Getting with Playwright (real browser)...")
         playwright_data = await run_playwright_historical(url, headless=False)
-        """
-        print(f"✅ Playwright data captured successfully")
-        # Save screenshot
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        screenshot_path = f"backgroundtests/screenshots/Inmuebles24 screenshot_{timestamp}.png"
-        with open(screenshot_path, 'wb') as f:
-            f.write(playwright_data['screenshots']['full'])
-        print(f"📸 Screenshot saved: {screenshot_path}")
         
-        """    
-        # Capture prices found
-        # Using the visible text method
-        print(f"\n  Playwright - Visible Text ({len(playwright_data['prices']['visible_text'])} total):")
-        for i, price in enumerate(playwright_data['prices']['visible_text'][:5], 1):
-            print(f"    {i}. {price['text']}")
-        # Using the price classes method
-        print(f"\n  Playwright - Span Prices ({len(playwright_data['prices']['span_prices'])} total):")
-        for i, price in enumerate(playwright_data['prices']['span_prices'], 1):
-            print(f"    {i}. {price['text']}")
-        """
-        # Show property cards found
-        print(f"\n  Playwright - Property Cards ({len(playwright_data['property_cards'])} total):")
-        for card in playwright_data['property_cards']:
-            print(
-                f"    - #{card['index']}: {card.get('title') or 'No title'}\n"
-                f"      URL: {card.get('url')}\n"
-                f"      Data ID: {card.get('data_id')}\n"
-                f"      Price: {card.get('price_text') or 'No price'}\n"
-                f"      Address: {card.get('address') or 'No address'}\n"
-                f"      Bedrooms: {card.get('bedrooms')}, "
-                f"Bathrooms: {card.get('bathrooms')}, "             
-                f"Parking: {card.get('parking')}, "
-                f"Area m²: {card.get('area_m2')}\n"
-                f"      Badges: {', '.join(card.get('badges', [])) if card.get('badges') else 'None'}"
-            )
-        """
         df = pd.DataFrame(playwright_data['property_cards'])
         df.to_csv("backgroundtests/csv/property_cards.csv", index=False, encoding="utf-8")
         print(f"✅ Saved {len(df)} property cards to property_cards.csv")
