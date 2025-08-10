@@ -76,8 +76,8 @@ async def run_playwright_historical(url: str,property_type=None ,n: int = 3, hea
         lastPageNum = 1
         print("Could not extract total listings, defaulting lastPageNum to 1")
 
-    if lastPageNum > n:
-        lastPageNum = n  # Limit to 3 for testing purposes
+    #if lastPageNum > n:
+    #    lastPageNum = n  # Limit to 3 for testing purposes
     # Step 2: Loop for n cycles
     for i in range(2, lastPageNum + 1):
         # Insert -pagina-{i} before .html in the URL
@@ -88,6 +88,21 @@ async def run_playwright_historical(url: str,property_type=None ,n: int = 3, hea
 
     # Merge all runs into historicaldata
     historicaldata = merge_playwright_data(run_data_list)
+    # Save the historical data to a csv file
+    df = pd.DataFrame(historicaldata.get('property_cards', []))
+    # Ensure directory exists (optional)
+    try:
+        import os
+        os.makedirs(os.path.dirname("backgroundtests/csv/"), exist_ok=True)
+    except Exception:
+        pass
+    # Timestamped filename to avoid overwrites
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    final_csv = f"backgroundtests/csv/property_cards_{ts}_{property_type}.csv"
+    df.to_csv(final_csv, index=False, encoding="utf-8")
+    print(f"✅ Saved {len(df)} property cards to {final_csv}")
+
 
     print(f"All runs complete. Total runs merged: {len(run_data_list)}")
     return historicaldata
