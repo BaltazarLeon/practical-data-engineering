@@ -32,11 +32,9 @@ def merge_playwright_data(run_data_list: list):
     }
 
     for run_data in run_data_list:
-        # Merge prices
-        for key in merged_data['prices']:
-            merged_data['prices'][key].extend(run_data['prices'].get(key, []))
         # Merge property cards
         merged_data['property_cards'].extend(run_data.get('property_cards', []))
+        """
         # Merge screenshots (optional: just keep all, or only the first)
         merged_data['screenshots'].append(run_data['screenshots'].get('full'))
         # Merge network requests and console logs
@@ -44,7 +42,7 @@ def merge_playwright_data(run_data_list: list):
         merged_data['console_logs'].extend(run_data.get('console_logs', []))
         # Merge metrics
         merged_data['metrics'].append(run_data.get('metrics'))
-
+        """
     return merged_data
 
 # Function to run multiple cycles and merge results
@@ -312,6 +310,7 @@ async def scrape_all_property_types(
     search_criteria: dict,
     property_type_slugs: dict,
     headless: bool = False,
+    page_limit: int = 3,
     csv_path: str = "backgroundtests/csv/property_cards_all.csv",
     use_human_label_for_tipo: bool = True
 ):
@@ -334,6 +333,7 @@ async def scrape_all_property_types(
         data = await run_playwright_historical(
             url,
             property_type=tipo_inmueble_value,  # <- goes into tipo_inmueble field
+            n=page_limit,
             headless=headless
         )
         all_runs.append(data)
@@ -371,6 +371,13 @@ async def debug_inmuebles24_scraper():
         "Departamento": "departamentos",
         "Casa": "casas",
         "Terreno / Lote": "terrenos",
+    }
+    """    # Original property_type_slugs for reference
+    # Uncomment if needed for comparison
+    property_type_slugs = {
+        "Departamento": "departamentos",
+        "Casa": "casas",
+        "Terreno / Lote": "terrenos",
         "Casa en condominio": "casa-en-condominio",
         "Local comercial": "locales-comerciales",
         "Bodega comercial": "bodegas-comerciales",
@@ -391,7 +398,7 @@ async def debug_inmuebles24_scraper():
         "Terreno comercial": "terreno-comercial",
         "Terreno industrial": "terreno-industrial",
         "Villa": "villa"
-    }
+    }"""
 
 
 
@@ -482,6 +489,7 @@ async def debug_inmuebles24_scraper():
             "rentOrBuy": "venta",
             "city": "ciudad-de-mexico"
         },
+        page_limit=1,
         property_type_slugs=property_type_slugs,
         headless=False,
         csv_path="backgroundtests/csv/property_cards_all.csv",
