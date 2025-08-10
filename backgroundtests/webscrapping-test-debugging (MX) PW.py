@@ -139,7 +139,7 @@ async def capture_with_playwright(url, property_type=None, headless=False):
         """
         
         # Wait a bit more for any lazy-loaded content
-        await page.wait_for_timeout(1000)
+        #await page.wait_for_timeout(1000)
         
         # Capture various data
         results = {
@@ -352,7 +352,7 @@ async def capture_with_playwright(url, property_type=None, headless=False):
         
         # Scroll to load any lazy content
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
-        await page.wait_for_timeout(1000)
+        #await page.wait_for_timeout(1000)
         
         # Get final page metrics
         metrics = await page.evaluate('''() => ({
