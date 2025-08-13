@@ -185,3 +185,4 @@ backgroundtests/html/
 backgroundtests/csv/
 backgroundtests/session-profiles
 backgroundtests/backgroundtests/
+.pw-user/
