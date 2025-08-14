@@ -167,7 +167,7 @@ async def capture_with_playwright(url, property_type=None, headless=False):
         const container = document.querySelector('div.postingsList-module__postings-container');
         if (!container) return [];
 
-        // numbers: drop commas (thousands), keep dot as decimal if present
+            // numbers: drop commas (thousands), keep dot as decimal if present
         const toNumber = (s) => {
             if (!s) return null;
             const cleaned = s.replace(/,/g, '');
