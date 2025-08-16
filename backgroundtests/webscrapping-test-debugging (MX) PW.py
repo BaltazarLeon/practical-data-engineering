@@ -115,42 +115,50 @@ async def run_playwright_historical(url: str,property_type=None ,n: int = None, 
     print(f"All runs complete. Total runs merged: {len(run_data_list)}")
     return historicaldata
 
-# You need to have merge_playwright_data defined as in previous examples.
 
+# Function to Capture Data using Playwright I think I need to separate this more into models
 
-#Original Function to capture data using Playwright, no CLoudflare bypass
-
-
-# Function to capture data using Playwright, with Cloudflare bypass
 # Function to Capture Data using Playwright I think I need to separate this more into models
 async def capture_with_playwright(url, property_type=None, headless=False):
-    #Capture the page using Playwright (real browser rendering)
+    """Capture the page using Playwright (real browser rendering)"""
     async with async_playwright() as p:
         # Launch browser
         browser = await p.chromium.launch(
             headless=headless,
             args=['--disable-blink-features=AutomationControlled']
         )
-        
+
         # Create context with realistic viewport and user agent
         context = await browser.new_context(
             viewport={'width': 1920, 'height': 1080},
             user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
             locale='en-US'
         )
-        
+
         # Create page
         page = await context.new_page()
 
-        
+
         # Navigate and wait for content
         print(f"🌐 Navigating to {url}")
         await page.goto(url)
-        await page.wait_for_timeout(3000)  # let initial content load a bit
+        await page.wait_for_timeout(1000)  # let initial content load a bit
+
+        """
+        # Wait for cookies banner and try to accept it
+        try:
+            print("🔔 Waiting for cookie banner...")
+            await page.wait_for_selector('button#onetrust-accept-btn-handler', timeout=5000)
+            await page.click('button#onetrust-accept-btn-handler')
+            print("✅ Cookie banner accepted")
+            await page.wait_for_timeout(1000)  # wait a bit after acceptance
+        except Exception as e:
+            print("⚠️ No cookie banner found or already accepted")
+        """
 
         # Wait a bit more for any lazy-loaded content
-        await page.wait_for_timeout(1000)
-        
+        #await page.wait_for_timeout(1000)
+
         # Capture various data
         results = {
             'title': await page.title(),
@@ -161,13 +169,13 @@ async def capture_with_playwright(url, property_type=None, headless=False):
             'network_requests': [],
             'console_logs': []
         }
-        
+
         # NOTE: pass `property_type` into evaluate and assign to tipo_inmueble
         property_cards = await page.evaluate('''(ptype) => {
         const container = document.querySelector('div.postingsList-module__postings-container');
         if (!container) return [];
 
-            // numbers: drop commas (thousands), keep dot as decimal if present
+        // numbers: drop commas (thousands), keep dot as decimal if present
         const toNumber = (s) => {
             if (!s) return null;
             const cleaned = s.replace(/,/g, '');
@@ -279,25 +287,25 @@ async def capture_with_playwright(url, property_type=None, headless=False):
 
         # Capture screenshots
         results['screenshots']['full'] = await page.screenshot(full_page=True)
-        
-  
+
+
         # Capture network activity
         page.on('request', lambda request: results['network_requests'].append({
             'url': request.url,
             'method': request.method,
             'type': request.resource_type
         }))
-        
+
         # Capture console logs
         page.on('console', lambda msg: results['console_logs'].append({
             'type': msg.type,
             'text': msg.text
         }))
-        
+
         # Scroll to load any lazy content
         await page.evaluate('window.scrollTo(0, document.body.scrollHeight)')
         #await page.wait_for_timeout(1000)
-        
+
         # Get final page metrics
         metrics = await page.evaluate('''() => ({
             totalElements: document.getElementsByTagName('*').length,
@@ -307,9 +315,9 @@ async def capture_with_playwright(url, property_type=None, headless=False):
             bodyText: document.body.innerText.substring(0, 1000)
         })''')
         results['metrics'] = metrics
-        
+
         await browser.close()
-        
+
         return results
 
 
