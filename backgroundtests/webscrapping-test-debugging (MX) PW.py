@@ -87,7 +87,7 @@ async def run_playwright_historical(url: str,property_type=None ,n: int = None, 
         if lastPageNum > n:
             lastPageNum = n  # Limit to 3 for testing purposes
     # Step 2: Loop for n cycles
-    for i in range(6, lastPageNum + 2):
+    for i in range(1, lastPageNum + 2):
         # Insert -pagina-{i} before .html in the URL
         paged_url = url.replace('.html', f'-pagina-{i}.html')
         print(f"Step 2: Running capture {i} for {paged_url}")
@@ -115,8 +115,6 @@ async def run_playwright_historical(url: str,property_type=None ,n: int = None, 
     print(f"All runs complete. Total runs merged: {len(run_data_list)}")
     return historicaldata
 
-
-# Function to Capture Data using Playwright I think I need to separate this more into models
 
 # Function to Capture Data using Playwright I think I need to separate this more into models
 async def capture_with_playwright(url, property_type=None, headless=False):

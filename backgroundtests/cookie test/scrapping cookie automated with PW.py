@@ -232,7 +232,8 @@ class Inmuebles24PlaywrightScraper:
             
             # Extract property cards using your JavaScript
             try:
-                property_cards = await page.evaluate('''(ptype) => {
+                property_cards =  await page.evaluate( 
+                    ''' (ptype) => {
                     const container = document.querySelector('div.postingsList-module__postings-container');
                     if (!container) {
                         console.log('Container not found');
